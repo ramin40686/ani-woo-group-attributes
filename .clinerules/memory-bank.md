@@ -44,10 +44,10 @@
 
 ## Current State
 
-- **Phase:** 1 (investigation) — approved 2026-11-23, no implementation yet
+- **Phase:** 0 complete; Phase 1 (investigation) prepared — awaiting explicit owner authorization, not started
 - **Documentation:** workspace docs finalized 2026-11-23 (rules, roadmap, context, environment, conventions, decisions)
 - **Repository:** baseline pushed to `main` 2026-11-23; per-phase branch workflow active (see `project-rules.md` §Git Workflow & Repository)
-- **Next:** Phase 1 investigation on branch `phase-1-investigation` (see `docs/PROJECT-ROADMAP.md` §3) → evidence-based report + options A/B/C → owner approval → Phase 2
+- **Next:** owner authorization → Phase 1 investigation on branch `phase-1-investigation` (see `docs/PROJECT-ROADMAP.md` §3) → evidence-based report + options A/B/C → owner approval → Phase 2
 
 ## Decisions
 

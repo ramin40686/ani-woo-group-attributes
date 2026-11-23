@@ -45,4 +45,4 @@
 
 ## Next
 
-Phase 1 investigation begins on branch `phase-1-investigation`.
+Phase 1 investigation will begin on branch `phase-1-investigation` **after explicit project-owner authorization** (status clarified 2026-11-23 — see `reports/2026-11-23-pre-phase-1-doc-corrections.md`).

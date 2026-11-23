@@ -22,4 +22,4 @@ WooCommerce **Product Group Attributes** manager — developed as an isolated mo
 
 ## Status
 
-**Phase 1 (investigation)** — approved 2026-11-23. See `docs/PROJECT-ROADMAP.md`.
+**Phase 0: complete. Phase 1 (investigation): prepared, awaiting explicit project-owner authorization to begin (not started).** See `docs/PROJECT-ROADMAP.md`.

@@ -49,6 +49,72 @@
 
 
 
+## Mandatory Project Execution Rules
+
+> Authoritative, project-wide execution rules (established Phase 0.1, 2026-11-23). These apply to **every** task and phase. Where a rule here is more specific than a general convention, this section governs. The step-by-step operational procedure for applying the Git and reporting rules is in the `git-workflow-and-reporting` skill (`.clinerules/skills/git-workflow-and-reporting/`).
+
+### Project-owner authorization
+
+- The project owner is the **final authority** for project scope, architecture, implementation, and phase transitions.
+- Cline must **not** infer authorization from roadmap entries, previous discussions, task completion, or the existence of a prepared phase.
+- A new phase may begin **only** after explicit owner authorization.
+- Completing one task does **not** automatically authorize the next task.
+- Cline must **stop** after completing the assigned task (see End-of-task stop condition).
+
+### Task scope control
+
+- Execute **only** the task explicitly assigned.
+- Do **not** expand scope independently.
+- Do **not** implement features while performing documentation or investigation tasks.
+- Do **not** change production code unless explicitly authorized.
+- Do **not** modify unrelated modules, snapshots, configuration, or project files.
+- If an additional issue is discovered, **document it and request authorization** instead of fixing it outside the assigned scope.
+
+### Branch and Git management
+
+- **Never** work directly on `main`.
+- Every independent phase uses its own branch: `phase-{N}-{slug}` (e.g. `phase-1-investigation`), created from `main`.
+- Maintenance and documentation tasks use dedicated chore branches: `chore-{slug}` (e.g. `chore-project-workflow-standardization`).
+- Every completed task is **committed and pushed** to its corresponding remote branch.
+- **Never** merge into `main` without explicit project-owner authorization.
+- **Never** force-push.
+- **Never** delete branches without explicit authorization.
+- **Never** reset, overwrite, or discard user changes.
+- **Never** include unrelated changes in a task commit.
+- Do **not** create a Pull Request unless explicitly requested or required by an established repository workflow.
+- Do **not** merge a Pull Request without explicit authorization.
+- These rules extend the `Git Workflow & Repository` section below.
+
+### Reporting requirements
+
+- Every independent task and every project phase produces a dedicated report under `reports/` (naming: `YYYY-MM-DD-{task-slug}.md`).
+- Reports are **committed and pushed** with the corresponding task changes.
+- Reports must reflect **actual repository state and verified evidence**, not assumptions.
+- Reports distinguish Implemented / Tested / Verified / Not tested / Not verified.
+
+### Commit and push requirements
+
+- Review the **complete diff** before committing.
+- Verify that **only authorized files** are included.
+- Check for secrets, credentials, temporary files, generated clutter, and unrelated modifications.
+- Use descriptive commit messages consistent with the repository's conventions (`type: description`).
+- Push the task branch.
+- **Verify** the remote branch and pushed commit.
+- **Never** claim a successful push without verification.
+- If push fails: record the actual error, preserve the local work, do **not** change credentials or Git configuration to bypass the failure, do **not** claim the task was pushed, and stop to report the issue.
+
+### End-of-task stop condition
+
+After completing the assigned task:
+1. Finish the report.
+2. Commit and push the authorized changes.
+3. Verify the final Git state.
+4. Provide a concise completion summary.
+5. **Stop** and wait for the project owner's next instruction.
+
+Do **not** automatically begin another phase or task.
+
+
 ##  Phase Discipline
 
 - Phases are defined in `PROJECT-ROADMAP.md` (authoritative).

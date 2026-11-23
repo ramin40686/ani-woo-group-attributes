@@ -98,8 +98,9 @@ Only authorized work was performed: Git workflow documentation, reporting standa
 - **Branch:** `chore/project-workflow-standardization`
 - **Base branch:** `main`
 - **Base commit:** `3abd4db`
-- **Final commit hash:** {{FINAL_COMMIT_HASH}}
-- **Remote push status:** {{PUSH_STATUS}}
+- **Final commit hash:** `4d0bfff` (commit containing all Phase 0.1 deliverables + this report)
+- **Remote push status:** Pushed to `origin/chore/project-workflow-standardization` and verified via `git ls-remote origin` — remote ref `4d0bfff9de13d30d63b21d1b2a9cebdf2e7c4c99` matches local HEAD.
+- **Note:** This hash and push status were recorded in a follow-up commit after the report commit (`4d0bfff`) was pushed and verified.
 
 ## 16. Phase / Task Status
 Phase 0.1 (workflow standardization) is **complete**. **Phase 1 remains NOT authorized** — it requires separate, explicit project-owner approval (Decision D13).

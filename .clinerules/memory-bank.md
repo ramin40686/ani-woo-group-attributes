@@ -51,4 +51,4 @@
 
 ## Decisions
 
-See `decisions.md` (D1–D12).
+See `decisions.md` (D1–D13).

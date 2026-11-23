@@ -37,8 +37,9 @@ Documentation consistency only:
 - **Branch:** `chore/pre-merge-consistency-fixes`
 - **Base branch:** `chore/project-workflow-standardization`
 - **Base commit:** `f98d8fb`
-- **Final commit hash:** {{FINAL_COMMIT_HASH}}
-- **Remote push status:** {{PUSH_STATUS}}
+- **Final commit hash:** `fcb2ce7` (commit containing the corrections + this report)
+- **Remote push status:** Pushed to `origin/chore/pre-merge-consistency-fixes` and verified via `git ls-remote origin` (remote ref matched local HEAD at verification time).
+- **Note:** A commit cannot contain its own hash, so the "final commit hash" above is the commit holding the deliverables; the hash-recording follow-up commit is the branch's final HEAD.
 
 ## 10. Phase / Task Status
 This maintenance task is **complete**. **Phase 1 remains NOT authorized** (Decision D13 in force). This branch is to be merged into `chore/project-workflow-standardization` (authorized as part of the pre-merge finalization task), not directly into `main`.

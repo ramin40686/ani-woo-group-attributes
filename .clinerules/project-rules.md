@@ -74,7 +74,7 @@
 
 - **Never** work directly on `main`.
 - Every independent phase uses its own branch: `phase-{N}-{slug}` (e.g. `phase-1-investigation`), created from `main`.
-- Maintenance and documentation tasks use dedicated chore branches: `chore-{slug}` (e.g. `chore-project-workflow-standardization`).
+- Maintenance and documentation tasks use dedicated chore branches: `chore/{slug}` (e.g. `chore/project-workflow-standardization`).
 - Every completed task is **committed and pushed** to its corresponding remote branch.
 - **Never** merge into `main` without explicit project-owner authorization.
 - **Never** force-push.

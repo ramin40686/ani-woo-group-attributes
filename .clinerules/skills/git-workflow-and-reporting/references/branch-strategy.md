@@ -6,8 +6,8 @@ Mandatory branch rules for this project. Authoritative policy: `.clinerules/proj
 
 - **Phase branches:** `phase-{N}-{slug}` — one per independent project phase.
   - Examples: `phase-1-investigation`, `phase-2-architecture`, `phase-3-implementation`.
-- **Chore branches:** `chore-{slug}` — for maintenance and documentation tasks that are not a numbered phase.
-  - Examples: `chore-project-workflow-standardization`, `chore-docs-audit-fixes`.
+- **Chore branches:** `chore/{slug}` — for maintenance and documentation tasks that are not a numbered phase.
+  - Examples: `chore/project-workflow-standardization`, `chore/docs-audit-fixes`.
 - Slugs are lowercase, hyphen-separated, and descriptive.
 
 ## Branch base selection

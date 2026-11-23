@@ -33,7 +33,7 @@ Purpose: prevent duplicate work, unauthorized changes, and conflicts with previo
 
 - **Never** work on `main`.
 - Phase work → branch `phase-{N}-{slug}` from `main`.
-- Maintenance / documentation work → branch `chore-{slug}` from `main`.
+- Maintenance / documentation work → branch `chore/{slug}` from `main`.
 - Base every new branch on the latest `main` (after `git fetch origin`).
 - See `references/branch-strategy.md` for the full rules (base selection, isolation, protecting `main`, handling existing branches and uncommitted changes).
 

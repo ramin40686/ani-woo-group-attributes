@@ -2,7 +2,7 @@
 
 Advanced WooCommerce Product Group Attributes manager in the free version of the Blocksy WordPress theme
 
-Project status: **Phase 1 (investigation) — in progress (approved 2026-11-23)**
+Project status: **Phase 0 complete — Phase 1 (investigation) prepared, awaiting explicit owner authorization (not started)**
 Project type: WordPress / Blocksy / WooCommerce
 Target website: Anishop
 Target URL: http://anishop.local
@@ -96,7 +96,7 @@ Tasks:
 
 ### Phase 1 – Environment and Architecture Inspection
 
-Status: **IN PROGRESS (approved 2026-11-23)**
+Status: **PREPARED — awaiting explicit owner authorization (not started)**
 
 Objective: Understand the actual free WooCommerce attribute architecture and the WooCommerce Group Attributes plugin architecture.
 

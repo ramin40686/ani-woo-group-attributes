@@ -1,0 +1,309 @@
+/**
+ * Anishop Search Box — frontend styles (Phase 3.3C).
+ *
+ * Scoped to the `.anishop-header-search` Header Builder element. The
+ * `--anishop-sb-*` custom properties are set inline on the wrapper by the
+ * element view from the dashboard settings (`anishop_search_box` Theme Mod);
+ * nothing here hardcodes a dashboard value.
+ *
+ * The form markup and the results dropdown are the native Blocksy Free Live
+ * Search engine's. This stylesheet only:
+ *  1. maps the dashboard appearance settings onto Blocksy's form-field
+ *     variables (height, colors, border, radius, icon size);
+ *  2. applies the house style to the dropdown (flat: border + whitespace,
+ *     one subtle shadow for layering);
+ *  3. styles the child-theme-added state rows (waiting / error);
+ *  4. viewport-centers the results dropdown on mobile (≤767px) so it is
+ *     independent of the element's position in the header row.
+ *
+ * Logical properties only — RTL-safe by construction. No global selectors,
+ * no `!important` (no verified specificity conflict required one).
+ *
+ * @package Anishop
+ */
+
+/* ==========================================================================
+   Wrapper — dashboard appearance → Blocksy form-field variables
+   ========================================================================== */
+
+.anishop-header-search {
+	/* Form field (the `.ct-pseudo-input` container reads these). */
+	--theme-form-field-height: var(--anishop-sb-height, 40px);
+	--theme-form-field-border-radius: var(--anishop-sb-radius, 2px);
+	--theme-form-field-border-width: var(--anishop-sb-border-width, 1px);
+	--theme-form-field-border-initial-color: var(--anishop-sb-border, #e1e8ed);
+	--theme-form-field-background-initial-color: var(--anishop-sb-bg, #ffffff);
+	--theme-form-text-initial-color: var(--anishop-sb-text, #192a3d);
+	--theme-form-field-border-focus-color: var(--anishop-sb-focus, #2872fa);
+
+	/* Submit button (icon) + search icon size. */
+	--search-button-size: var(--anishop-sb-height, 40px);
+	--theme-icon-size: var(--anishop-sb-icon-size, 15px);
+
+	/* Results dropdown (house style: flat, border + whitespace). */
+	--search-dropdown-background: var(--anishop-sb-bg, #ffffff);
+	--search-dropdown-box-shadow: 0 10px 30px rgba(25, 42, 61, 0.08);
+	--search-image-radius: 4px;
+
+	position: relative;
+	width: 100%;
+	max-width: var(--anishop-sb-max-width, 320px);
+}
+
+/* The form fills the wrapper; the wrapper caps the width so the box never
+   overflows its header row on any device. */
+.anishop-header-search .ct-search-form {
+	width: 100%;
+}
+
+.anishop-header-search .ct-search-form .ct-pseudo-input {
+	width: 100%;
+}
+
+/* Input text + placeholder colors (the theme default is `color: inherit;
+   opacity: .7` for placeholders — the dashboard color wins). */
+.anishop-header-search .ct-search-form input[type="search"] {
+	color: var(--anishop-sb-text, #192a3d);
+}
+
+.anishop-header-search .ct-search-form input[type="search"]::placeholder {
+	color: var(--anishop-sb-placeholder, #3a4f66);
+	opacity: 1;
+}
+
+/* The submit button (icon + loader) inherits the text color. */
+.anishop-header-search .ct-search-form .wp-element-button {
+	color: var(--anishop-sb-text, #192a3d);
+}
+
+/* ==========================================================================
+   Results dropdown — house style on top of the engine's positioning
+   ========================================================================== */
+
+/* Positioning/visibility behavior is the engine's (lazy-loaded
+   non-critical-search-styles); here only the surface is restyled. */
+.anishop-header-search .ct-search-results {
+	border: var(--anishop-sb-border-width, 1px) solid var(--anishop-sb-border, #e1e8ed);
+}
+
+/* Result rows (the engine's flex layout is kept). */
+.anishop-header-search .ct-search-results a {
+	color: var(--anishop-sb-text, #192a3d);
+}
+
+.anishop-header-search .ct-search-results a:hover,
+.anishop-header-search .ct-search-results a:focus-visible {
+	color: var(--anishop-sb-focus, #2872fa);
+}
+
+/* Price + stock meta row (WooCommerce price_html markup is untouched —
+   regular/sale prices keep WooCommerce's own formatting). */
+.anishop-header-search .ct-search-results .product-search-meta {
+	color: var(--anishop-sb-placeholder, #3a4f66);
+}
+
+/* The engine's native "Show more" link (submits the form to the results
+   page — the approved D8 mechanism). */
+.anishop-header-search .ct-search-results .ct-search-more {
+	color: var(--anishop-sb-focus, #2872fa);
+	font-weight: 500;
+}
+
+/* ==========================================================================
+   Two-column results dropdown (desktop, ≥768px = Blocksy `md`)
+   ========================================================================== */
+
+/* On desktop the live-results dropdown is a two-column grid with a fixed,
+   dashboard-configurable width (`--anishop-sb-dropdown-width`, default 520px).
+   The width is capped to the viewport so a large configured value can never
+   push the dropdown off-screen. The dropdown is anchored to the form's
+   inline-end edge so it extends toward the inline-start, where the header
+   has room at all desktop widths (768–1440px). At 768–900px the form sits
+   near the viewport's inline-start edge; anchoring to inline-start would
+   push the 520px dropdown off-screen. Mobile (<768px) keeps the engine's
+   one-column layout and the form-width sizing. */
+@media (min-width: 768px) {
+	.anishop-header-search .ct-search-results {
+		width: var(--anishop-sb-dropdown-width, 520px);
+		max-width: calc(100vw - 30px);
+		inset-inline-end: 0;
+		inset-inline-start: auto;
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0 15px;
+		--items-divider: none;
+		--items-padding: 12px 16px;
+	}
+
+	/* The native "Show more" link spans both columns. */
+	.anishop-header-search .ct-search-results .ct-search-more {
+		grid-column: 1 / -1;
+		justify-content: center;
+	}
+
+	/* Child-theme state rows (waiting / error) span both columns. */
+	.anishop-header-search .ct-search-results .anishop-sb-state {
+		grid-column: 1 / -1;
+	}
+}
+
+/* ==========================================================================
+   Viewport-centered results dropdown (mobile, ≤767px)
+   ========================================================================== */
+
+/* The engine positions the results absolutely inside the (narrow) form, so
+   the dropdown's width and horizontal position depend on where the element
+   sits in the header row. On small screens the dropdown is fixed to the
+   viewport instead: horizontally centered, sized from the viewport (not the
+   form), with safe 16px side margins, below the full header.
+
+   `--search-dropdown-position` is the engine's own extension point
+   (non-critical-search-styles: `position: var(--search-dropdown-position,
+   absolute)`); set on the wrapper it is inherited by the results. The
+   engine's `padding-top` (form-height + 15px offset that pushes the content
+   below the form) is dropped because the box now starts below the header,
+   not above the form. The engine's fade animation measures the rendered box
+   height, so it is unaffected.
+
+   Vertical position: `--anishop-sb-mobile-dropdown-top` (set inline on the
+   wrapper by the element view from the dashboard setting
+   `mobile_dropdown_top`, default 134px) is the distance from the top of the
+   viewport to the top of the dropdown. It is a manual, owner-tunable value
+   matched to the full header height — automatic header-height measurement is
+   intentionally out of scope. The `134px` in the `var()` fallback covers the
+   case where the inline property is absent.
+
+   The search input width and the desktop (≥768px) layout are untouched. */
+@media (max-width: 767px) {
+	.anishop-header-search {
+		--search-dropdown-position: fixed;
+		/* Widen the mobile search box to fit the clear button (Phase 7.3).
+		   Phase 7.2 verified 100px is safe at 320/375/414px (no overflow,
+		   trigger in-viewport, gap intact). */
+		min-width: 100px;
+	}
+
+	.anishop-header-search .ct-search-results {
+		top: var(--anishop-sb-mobile-dropdown-top, 134px);
+		inset-inline: auto;
+		left: 50%;
+		transform: translateX(-50%);
+		width: calc(100vw - 2 * var(--anishop-sb-mobile-side-margin, 16px));
+		max-width: 400px;
+		padding-top: 0;
+
+		/* Mobile touch-scrolling fix (Phase 6): the engine's `.ct-search-results`
+		   uses `overflow: clip` (non-scrollable) with no max-height, so the fixed
+		   dropdown grew past the viewport and its bottom (last item + "Show more")
+		   was unreachable. Constrain the height to the space between the header
+		   and the bottom nav, and make it a vertical scroll container.
+		   `100vh` fallback first; `100dvh` progressive enhancement (dynamic
+		   viewport height, correct for the mobile URL-bar collapse). */
+		max-height: calc(
+			100vh
+			- var(--anishop-sb-mobile-dropdown-top, 134px)
+			- var(--anishop-nav-height, 56px)
+			- env(safe-area-inset-bottom, 0px)
+			- 16px
+		);
+		max-height: calc(
+			100dvh
+			- var(--anishop-sb-mobile-dropdown-top, 134px)
+			- var(--anishop-nav-height, 56px)
+			- env(safe-area-inset-bottom, 0px)
+			- 16px
+		);
+		overflow-x: clip;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
+	}
+}
+
+/* ==========================================================================
+   Child-theme-added state rows (waiting / error)
+   ========================================================================== */
+
+/* Rendered by the frontend script inside a `.ct-search-results` container
+   (the engine's own container class, so the engine's close/replace paths
+   manage its lifecycle). House palette only — no new colors. */
+.anishop-header-search .ct-search-results .anishop-sb-state {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 16px;
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.anishop-header-search .ct-search-results .anishop-sb-state svg {
+	flex-shrink: 0;
+	width: 15px;
+	height: 15px;
+}
+
+/* Non-error "still searching" state (C4: a slow request is not a failure). */
+.anishop-header-search .ct-search-results .anishop-sb-state--waiting {
+	color: var(--anishop-sb-placeholder, #3a4f66);
+}
+
+/* Confirmed failure state (genuine network/HTTP error only). */
+.anishop-header-search .ct-search-results .anishop-sb-state--error {
+	color: var(--anishop-sb-text, #192a3d);
+}
+
+/* ==========================================================================
+   Clear button (Phase 7.3)
+   ========================================================================== */
+
+/* Reserve space for the clear button in the input's inline-end padding.
+   The button is 24px wide with an 8px gap from the submit button, so the
+   input needs 32px of inline-end padding to avoid text overlap. */
+.anishop-header-search .ct-search-form-inner input[type="search"] {
+	padding-inline-end: 32px;
+}
+
+/* The clear button is positioned at the input's logical end (inline-end =
+   left in RTL), between the text and the submit button. It is always present
+   in the DOM (added by JS) but hidden (opacity 0) when the input is empty. */
+.anishop-header-search .anishop-sb-clear {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	inset-inline-end: calc(var(--search-button-size, var(--theme-form-field-height, 40px)) + 8px);
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--anishop-sb-text, #192a3d);
+	cursor: pointer;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition: opacity 0.15s ease, visibility 0.15s ease;
+	z-index: 2;
+}
+
+/* Visible state (input has content). */
+.anishop-header-search .anishop-sb-clear.anishop-sb-clear--visible {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+}
+
+/* Focus ring for keyboard navigation. */
+.anishop-header-search .anishop-sb-clear:focus-visible {
+	outline: 2px solid var(--anishop-sb-focus, #2872fa);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+/* The clear button's SVG icon. */
+.anishop-header-search .anishop-sb-clear svg {
+	width: 16px;
+	height: 16px;
+}

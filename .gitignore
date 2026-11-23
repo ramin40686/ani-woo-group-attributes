@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Temp / diagnostics (task-scoped, never committed)
+temp/
+.tmp-*/
+*.log

@@ -1,0 +1,145 @@
+# پروژه: ani-group-product-attributes (گروه‌بندی ویژگی‌های آنی)
+
+## محیط و محدودیت‌ها
+- این ماژول بخشی از قالب فرزند Blocksy Child است و نباید به عنوان افزونه مستقل نصب شود.
+- مسیر نصب نهایی: `wp-content/themes/blocksy-child/inc/ani-group-product-attributes/`
+- مسیر توسعه (Workspace): `/home/ramin/Downloads/woo-group-attributes/`
+- **Child theme (only place for new code):** `/home/ramin/Local Sites/anishop/app/public/wp-content/themes/blocksy-child/`
+- **Target WordPress:** `/home/ramin/Local Sites/anishop/app/public/`
+- **Never work on:** `/home/ramin/Studio/kafshkohestan/`, `/home/ramin/Studio/my-wordpress-website/`
+###  Permanent Filesystem Scope Rule (two-path boundary)
+
+> **PERMANENT RULE (2026-11-16):** All filesystem access — read **and** write — is restricted to exactly **two paths**:
+>
+> 1. **The active workspace:** `/home/ramin/Downloads/woo-group-attributes/`
+> 2. **The target WordPress installation:** `/home/ramin/Local Sites/anishop/app/public/`
+
+> No other path may be read, written, or modified as part of this project. The old workspace (`/home/ramin/Downloads/test-novamira/`, excluding this workspace) is **history only** and must not be accessed. This rule applies to every phase and every session and may only be changed by an explicit owner decision recorded in `decisions.md`.
+
+- زبان‌ها: فارسی (پیش‌فرض) و انگلیسی. تمام رشته‌های قابل ترجمه باید هماهنگ با مازول های قبلی  باشد:
+/home/ramin/Local Sites/anishop/app/public/wp-content/themes/blocksy-child/languages/fa_IR.mo
+/home/ramin/Local Sites/anishop/app/public/wp-content/themes/blocksy-child/languages/fa_IR.po
+- پیشوند تمام کلاس‌ها، توابع و آپشن‌ها:هماهنگ با سایر ماژول ها باشد یا از این پیشوند استفاده شود: `ani_gpa_` یا `Ani_GPA_`.
+
+## استانداردهای کدنویسی
+- از استانداردهای WordPress PHP Coding Standards پیروی کن.
+- تمام فایل‌های PHP باید در ابتدا `if ( ! defined( 'ABSPATH' ) ) { exit; }` داشته باشند.
+- نام‌گذاری کلاس‌ها به صورت `Ani_GPA_Class_Name` و توابع به صورت `ani_gpa_function_name`.
+- برای ذخیره داده‌ها از Custom Post Type `ani_gpa_group` و `ani_gpa_group_cat` (تاکسونومی) استفاده کن.
+- متادیتای محصول: `_ani_gpa_assigned_groups` (آرایه) و `_ani_gpa_selected_values` (آرایه associative).
+
+## قوانین امنیتی
+- تمام خروجی‌ها با `esc_html()`، `esc_attr()` یا `wp_kses_post()` escape شوند.
+- در ذخیره متادیتا از nonce و بررسی `current_user_can( 'edit_product', $post_id )` استفاده شود.
+- از `sanitize_text_field()` و `wp_unslash()` برای ورودی‌ها استفاده شود.
+
+## بین‌المللی‌سازی
+
+- از فایل `.pot` در پوشه `languages/` استفاده شود.
+
+
+## یکپارچگی با Blocksy
+- استایل‌ها نباید با استایل‌های قالب تداخل داشته باشند. هماهنگ با سایر مازولهای قالب فرزند، از پیشوند `.ani-gpa-` برای تمام کلاس‌های CSS استفاده کن.
+- در صورت نیاز به بازنویسی قالب، از فایل‌های template در پوشه `templates/` استفاده کن و از `get_stylesheet_directory()` برای مسیر استفاده کن.
+
+## مستندات مرجع
+- مستندات رسمی افزونه: `docs/references/group-attributes-reference.md`
+- نکات فنی ویژگی‌های WooCommerce: `docs/woocommerce-attributes-dev-notes.md`
+
+
+
+
+##  Phase Discipline
+
+- Phases are defined in `PROJECT-ROADMAP.md` (authoritative).
+- **Do not advance to the next phase without explicit owner approval.**
+- Phase 1 is investigation only — no implementation.
+- **No implementation before architecture approval (Phase 2).**
+- No speculative code changes. No implementation code in Phase 0/1.
+
+##  Inspection Before Modification
+
+- Always inspect the live state before changing anything.
+- **Source-of-truth order:** live site → real WP/Woo data → browser/CDP output → WordPress Studio MCP → WP-CLI.
+- Never determine site state from assumptions, memory, sample code, or stale data.
+- Report findings with evidence and exact file paths.
+- Separate fact from assumption; mark unverified items `NOT VERIFIED`.
+
+##  Change Discipline
+
+- **Small, verifiable tasks** over large autonomous tasks.
+- **Minimal code changes; no unnecessary refactoring.**
+- **Never modify** WordPress core, Blocksy parent, or Blocksy Companion files.
+- All new code isolated in `blocksy-child`.
+- **Preserve existing child-theme modules** (list in `technical-conventions.md` §2) — do not modify them without explicit approval.
+- No new plugins, no JavaScript frameworks, no page builders.
+- **No Blocksy Pro runtime dependency** in the final implementation.
+
+##  Git Workflow & Repository
+
+- **Repository:** `https://github.com/ramin40686/ani-woo-group-attributes` (HTTPS) — the workspace `/home/ramin/Downloads/woo-group-attributes/` is the repo's working copy.
+- **Per-phase branches:** every phase starts with a new branch `phase-{N}-{slug}` (e.g. `phase-1-investigation`) created from `main`. All phase work is committed on that branch.
+- **Merge policy:** a phase branch is merged into `main` only after the phase is complete **and** the owner has approved it. `main` always reflects the last approved state.
+- **Child-theme snapshot:** a copy of the latest live child theme lives in the repo at `snapshots/blocksy-child/` — refresh it whenever the live `blocksy-child` changes.
+- **Task reports on GitHub:** every end-of-task report is written to `reports/YYYY-MM-DD-{task-slug}.md` in the workspace and committed + pushed, so the owner and external AI assistants (e.g. ChatGPT) can read it on GitHub.
+
+##  Safety
+
+- **WP-CLI is read-only by default.** Mutating commands (`option update`, `post update`, `plugin install/activate`, `theme activate`, etc.) require explicit task justification + stated target + minimal scope.
+- No database writes without explicit task authorization.
+- No plugin/theme install/activate/deactivate without explicit task authorization (Pro installation for investigation requires owner approval).
+- Temporary diagnostic files: outside production, used only for that task, removed after the task.
+- Never use a database write as a shortcut for a frontend problem.
+
+##  Data & Content
+
+- **Real data only.** Never fabricate products, prices, stock, variations, categories, attributes, ratings, or contact info.
+- Anishop is a **Persian RTL** store; every frontend change must consider RTL (direction, typography, alignment, spacing, responsive behavior on mobile + desktop).
+
+##  Verification
+
+- **Never mark a test PASS that was not run.**
+- Use the right verification: static/syntax, browser/CDP, mobile, desktop, WP/Woo state, regression, console errors, network requests.
+- **CDP/headless success does not imply real-mobile success.**
+- Provenance labels (never convert one type into another):
+  - `[REAL-MOBILE USER-REPORTED EVIDENCE]` — physical device via Local Live Link. Authoritative for mobile-only behavior.
+  - `[CDP/HEADLESS EVIDENCE — NOT REAL-MOBILE VERIFIED]` — headless Chrome/curl. Controlled-environment evidence only.
+  - `[STATIC CODE EVIDENCE]` — source reading/auditing only.
+  - `[DOCUMENTED <date>]` — carried over from the old workspace (verified at the stated date); re-verify before relying on it.
+
+##  Reporting
+
+- Final report per task must separate: **Changed / Verified / Not Verified / Risks & Open Questions**.
+- **Every report lists the changed files** (created / modified / deleted) with their paths.
+- **Reports are published to GitHub:** in addition to the Cline chat and the VS Code workspace, every end-of-task report is saved to `reports/YYYY-MM-DD-{task-slug}.md` and pushed to the repo (see §Git Workflow & Repository).
+- **Report blockers clearly instead of entering repetitive analysis loops.**
+- When a decision needs owner input, present the specific question + available evidence.
+- Do not claim success for anything not actually tested.
+
+##  Localization
+
+- Admin UI strings: **English source + Persian translation** (`blocksy-child/languages/fa_IR.mo`, text domain `anishop`).
+- Frontend UI: Persian, RTL.
+- Technical terms (e.g. Renderer, Swatch) may stay English in admin UI (established convention).
+
+# General WordPress Rules (global rule bank + reasoning policy)
+
+> **Verified 2026-11-15 (Phase 0.2):** Cline loads a **global rule bank** from
+> `/home/ramin/Documents/Cline/Rules/` (setting `clinerules.ruleBankPath`) in **every** workspace.
+> It contains 4 generic WordPress rule files that are auto-loaded in full:
+> `wordpress-coding-standards.md` (code style, hooks, DB, assets/AJAX, security) ·
+> `wordpress-security-and-db.md` (nonces, escaping, `$wpdb->prepare()`, error handling) ·
+> `wordpress-assets-and-ajax.md` (enqueue rules, REST-first, nonce verification) ·
+> `wordpress-best-practices.md` (child themes, template hierarchy, i18n, testing) —
+> plus `studio-mcp.md` (WordPress Studio MCP toolset).
+>
+> The per-topic summaries previously kept in this file were removed as duplicates of the global
+> rule bank (the old workspace's `.clinerules/` holds byte-identical copies of the same 4 rules).
+> Project-specific rules live in this file (`project-rules.md`).
+
+## Reasoning Policy (not in the global rule bank — kept here)
+
+- **Routine implementation tasks** (plugins, themes, HTML/CSS, UI, CRUD, API integrations, settings pages): implement the most likely correct solution immediately; avoid lengthy analysis; do not compare alternatives unless requested.
+- **Extended reasoning only for:** debugging unknown issues, architecture decisions, database schema design, performance bottlenecks, security reviews, large-scale refactoring, complex asynchronous workflows, caching strategies.
+- **Priority order:** 1. Correctness · 2. WordPress coding standards · 3. Security · 4. Maintainability · 5. Performance · 6. Brevity of reasoning.
+- Concise explanations unless the user explicitly asks for detailed analysis.

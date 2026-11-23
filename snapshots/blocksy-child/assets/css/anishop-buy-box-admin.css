@@ -1,0 +1,124 @@
+/**
+ * Anishop Buy Box — admin styles (Stage 3).
+ *
+ * Styles for the Buy Box rows repeater, shared by:
+ *  - the global rows (Appearance → Anishop → Buy Box Container), and
+ *  - the product-specific rows (WooCommerce product-edit Advanced tab).
+ *
+ * All properties are logical / direction-agnostic so the layout works in
+ * both RTL and LTR.
+ */
+
+/* Intro + reserved settings (global tab only). */
+.anishop-buy-box-admin__intro { max-width: 720px; margin-block-end: 16px; }
+.anishop-buy-box-admin__reserved { max-width: 720px; }
+.anishop-buy-box-admin__reserved-list { margin: 0; padding-inline-start: 0; list-style: none; }
+.anishop-buy-box-admin__reserved-list li { margin-block-end: 8px; }
+.anishop-buy-box-admin__stage-tag { display: inline-block; margin-inline-start: 8px; padding: 2px 8px; font-size: 12px; line-height: 1.6; color: #50575e; background: #f0f0f1; border-radius: 3px; }
+.anishop-buy-box-admin__rows { max-width: 960px; }
+
+/* Rows repeater (shared by the global tab and the product-edit Advanced tab). */
+.anishop-bb-rows-admin__list { margin: 0; padding: 0; list-style: none; }
+.anishop-bb-admin__row { display: flex; gap: 12px; align-items: flex-start; padding: 12px; margin-block-end: 8px; background: #f6f7f7; border: 1px solid #dcdcde; border-radius: 4px; }
+.anishop-bb-admin__row--disabled { opacity: 0.6; }
+.anishop-bb-admin__row-fields { display: grid; grid-template-columns: 110px 1.4fr 1.4fr 1.4fr 110px; gap: 8px; flex: 1; }
+.anishop-bb-admin__field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #50575e; }
+.anishop-bb-admin__field input, .anishop-bb-admin__field select { width: 100%; max-width: 100%; box-sizing: border-box; }
+.anishop-bb-admin__field input[type="checkbox"] { width: auto; }
+.anishop-bb-admin__field--enabled { flex-direction: row; align-items: center; gap: 6px; }
+.anishop-bb-admin__row-actions { display: flex; flex-direction: column; gap: 4px; }
+.anishop-bb-rows-admin__empty { color: #646970; padding: 8px 0; }
+
+/* Product-edit context: align with WooCommerce .options_group styling. */
+.anishop-buy-box-product-rows .anishop-bb-rows-admin__list {
+	margin: 0;
+}
+
+/* Product-edit context overrides.
+ *
+ * WooCommerce's admin.css applies this to EVERY <label> inside the product
+ * data panel (our field labels included):
+ *
+ *   .woocommerce_options_panel label, .woocommerce_options_panel legend {
+ *     width: 150px; float: right; margin: 0 -150px 0 0; padding: 0;
+ *   }
+ *
+ * The negative margin pushes the first field (Enabled) 150px past the
+ * container's edge, so the checkbox renders off-screen and the fields
+ * overlap. We must reset those properties on our labels before our flex
+ * layout can work. Our selector (two classes) outranks WooCommerce's
+ * (one class + one element), so this wins without !important.
+ */
+.anishop-buy-box-product-rows .anishop-bb-admin__field {
+	float: none;
+	width: auto;
+	margin: 0;
+	padding: 0;
+}
+
+.anishop-buy-box-product-rows .anishop-bb-admin__row {
+	display: flex;
+	flex-direction: column;
+	padding: 15px;
+	gap: 15px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+}
+
+.anishop-buy-box-product-rows .anishop-bb-admin__row-fields {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 15px;
+	align-items: flex-start;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* Each field takes equal space, but has a minimum width so they wrap if needed. */
+.anishop-buy-box-product-rows .anishop-bb-admin__field {
+	flex: 1 1 180px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+/* Fix the Enabled checkbox specifically. */
+.anishop-buy-box-product-rows .anishop-bb-admin__field--enabled {
+	flex: 0 0 80px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 8px;
+	padding-top: 20px;
+}
+
+/* Force the checkbox to be visible and normal size. */
+.anishop-buy-box-product-rows .anishop-bb-admin__field--enabled input[type="checkbox"] {
+	width: 16px !important;
+	height: 16px !important;
+	margin: 0 !important;
+	display: inline-block !important;
+}
+
+/* Fix the Icon field so it doesn't stretch. */
+.anishop-buy-box-product-rows .anishop-bb-admin__field--icon {
+	flex: 0 0 100px;
+}
+
+.anishop-buy-box-product-rows .anishop-bb-admin__field--icon select {
+	width: 100%;
+}
+
+/* Action buttons. */
+.anishop-buy-box-product-rows .anishop-bb-admin__row-actions {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: 8px;
+	width: 100%;
+	padding-top: 10px;
+	border-top: 1px solid #eee;
+}

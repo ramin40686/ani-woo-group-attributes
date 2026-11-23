@@ -1,0 +1,368 @@
+/**
+ * Anishop mobile bottom navbar — admin styles (B6-15 Part 2, Step 2).
+ *
+ * Scoped to .anishop-mnav-admin. Loaded only on the
+ * Appearance → Anishop (Mobile Bottom Navbar) admin page.
+ */
+
+.anishop-mnav-admin__layout {
+	display: flex;
+	gap: 24px;
+	align-items: flex-start;
+	margin-top: 16px;
+}
+
+.anishop-mnav-admin__main {
+	flex: 1;
+	min-width: 0;
+}
+
+.anishop-mnav-admin__side {
+	width: 320px;
+	flex-shrink: 0;
+}
+
+.anishop-mnav-admin__fieldset {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	margin: 0 0 20px;
+	padding: 12px 16px 16px;
+	background: #fff;
+	max-width: 880px;
+}
+
+.anishop-mnav-admin__fieldset legend {
+	font-weight: 600;
+}
+
+.anishop-mnav-admin__enabled {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+/* Item list */
+
+.anishop-mnav-admin__items {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.anishop-mnav-admin__item {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 12px;
+	margin-bottom: 10px;
+	background: #fff;
+}
+
+.anishop-mnav-admin__item.is-system {
+	background: #f6f7f7;
+}
+
+.anishop-mnav-admin__item-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.anishop-mnav-admin__item-icon svg {
+	width: 20px;
+	height: 20px;
+	display: block;
+}
+
+.anishop-mnav-admin__item-title {
+	font-weight: 600;
+}
+
+.anishop-mnav-admin__item-badge {
+	background: #f0f0f1;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+	padding: 0 8px;
+	font-size: 11px;
+	color: #50575e;
+}
+
+.anishop-mnav-admin__item-fields {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 180px, 1fr ) );
+	gap: 10px 16px;
+	align-items: end;
+}
+
+.anishop-mnav-admin__item-fields > label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 12px;
+	color: #50575e;
+}
+
+.anishop-mnav-admin__item-fields input[type="text"],
+.anishop-mnav-admin__item-fields input[type="url"],
+.anishop-mnav-admin__item-fields select {
+	width: 100%;
+}
+
+.anishop-mnav-admin__item-fields .anishop-mnav-admin__enabled {
+	font-size: 12px;
+	color: #50575e;
+}
+
+/* Icon picker */
+
+.anishop-mnav-admin__icon-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 12px;
+	color: #50575e;
+}
+
+.anishop-mnav-admin__icons {
+	display: flex;
+	gap: 6px;
+}
+
+.anishop-mnav-admin__icon-option {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	cursor: pointer;
+	background: #fff;
+}
+
+.anishop-mnav-admin__icon-option input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.anishop-mnav-admin__icon-option.is-selected,
+.anishop-mnav-admin__icon-option:has( input:checked ) {
+	border-color: #2271b1;
+	background: #f0f6fc;
+}
+
+.anishop-mnav-admin__icon-svg svg {
+	width: 18px;
+	height: 18px;
+}
+
+/* Icon picker groups (B6-15 Icon Assets Discovery PoC) */
+
+.anishop-mnav-admin__icon-groups {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.anishop-mnav-admin__icon-group {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.anishop-mnav-admin__icon-group-label {
+	font-size: 11px;
+	font-weight: 600;
+	color: #50575e;
+}
+
+.anishop-mnav-admin__icon-img {
+	width: 18px;
+	height: 18px;
+	display: block;
+	object-fit: contain;
+}
+
+/* Project icon help text (B6-15 Icon Assets Discovery PoC) */
+
+.anishop-mnav-admin__icon-help {
+	margin: 0 0 20px;
+	padding: 10px 14px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	font-size: 12px;
+	color: #50575e;
+	max-width: 880px;
+}
+
+.anishop-mnav-admin__icon-help h4 {
+	margin: 0 0 6px;
+	font-size: 13px;
+	color: #1d2327;
+}
+
+.anishop-mnav-admin__icon-help p {
+	margin: 4px 0;
+}
+
+.anishop-mnav-admin__icon-help code {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	padding: 0 4px;
+	font-size: 11px;
+}
+
+.anishop-mnav-admin__icon-help ul {
+	margin: 6px 0;
+	padding-inline-start: 18px;
+}
+
+.anishop-mnav-admin__icon-help li {
+	margin-bottom: 2px;
+}
+
+/* Appearance presets (B6-15) */
+
+.anishop-mnav-admin__appearance {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 220px, 1fr ) );
+	gap: 16px 24px;
+}
+
+.anishop-mnav-admin__appearance-group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.anishop-mnav-admin__appearance-label {
+	font-size: 12px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.anishop-mnav-admin__appearance-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+}
+
+.anishop-mnav-admin__appearance-option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	color: #3c434a;
+	cursor: pointer;
+}
+
+.anishop-mnav-admin__appearance-option input {
+	margin: 0;
+}
+
+/* URL field (custom items only) */
+
+.anishop-mnav-admin__url-field.is-hidden {
+	display: none;
+}
+
+/* Item actions */
+
+.anishop-mnav-admin__item-actions {
+	display: flex;
+	gap: 6px;
+	margin-top: 10px;
+}
+
+.anishop-mnav-admin__move:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.anishop-mnav-admin__remove {
+	color: #b32d2e;
+}
+
+/* Static preview */
+
+.anishop-mnav-admin__preview {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+	padding: 12px 16px 16px;
+	position: sticky;
+	top: 46px;
+}
+
+.anishop-mnav-admin__preview h2 {
+	margin-top: 0;
+}
+
+.anishop-mnav-admin__preview-disabled {
+	color: #b32d2e;
+}
+
+.anishop-mnav-admin__preview-bar {
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	background: #1d2327;
+	border-radius: 12px;
+	padding: 10px 8px;
+}
+
+.anishop-mnav-admin__preview-bar.is-disabled {
+	opacity: 0.4;
+}
+
+.anishop-mnav-admin__preview-item {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	color: #fff;
+}
+
+.anishop-mnav-admin__preview-icon svg {
+	width: 20px;
+	height: 20px;
+}
+
+.anishop-mnav-admin__preview-label {
+	font-size: 10px;
+	max-width: 64px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.anishop-mnav-admin__preview-badge {
+	position: absolute;
+	top: -6px;
+	inset-inline-end: -10px;
+	background: #d63638;
+	color: #fff;
+	border-radius: 9px;
+	font-size: 10px;
+	line-height: 1;
+	padding: 3px 5px;
+}
+
+@media screen and ( max-width: 960px ) {
+	.anishop-mnav-admin__layout {
+		flex-direction: column-reverse;
+	}
+
+	.anishop-mnav-admin__side {
+		width: 100%;
+	}
+
+	.anishop-mnav-admin__preview {
+		position: static;
+	}
+}

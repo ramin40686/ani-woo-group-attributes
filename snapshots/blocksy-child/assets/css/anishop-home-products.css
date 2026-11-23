@@ -1,0 +1,176 @@
+/**
+ * Anishop homepage — product carousels.
+ *
+ * Scoped to the four front-page Product Collection sections only
+ * (body.home + .wp-block-woocommerce-product-collection). No other
+ * WooCommerce page or component is affected.
+ *
+ * 1. The product <ul> becomes a single horizontal row (no wrap) with
+ *    native horizontal scrolling + gentle scroll snapping.
+ * 2. Card widths mirror the existing responsive grid column widths
+ *    (4 per view >= 692px, 3 per view 522-691px, 2 per view < 522px),
+ *    so the carousel keeps the current design's card sizes.
+ * 3. Product titles are visually clamped to two lines (ellipsis) with a
+ *    fixed two-line height, so Price and Add-to-Cart start at the same
+ *    vertical position in every card of a row.
+ * 4. The Add-to-Cart wrapper is pinned to the card bottom, so card
+ *    bottoms and CTA rows align regardless of title/price length.
+ */
+
+/* ------------------------------------------------------------------
+ * 1. Horizontal track
+ * ------------------------------------------------------------------ */
+body.home .wp-block-woocommerce-product-collection .wc-block-product-template {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 1.25em;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scroll-snap-type: x proximity;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	/* Room for focus outlines so no inner scrollbar appears. */
+	padding: 4px 0;
+}
+
+body.home .wp-block-woocommerce-product-collection .wc-block-product-template::-webkit-scrollbar {
+	display: none;
+}
+
+/* ------------------------------------------------------------------
+ * 2. Cards — one row, fixed per-view widths, aligned columns
+ * ------------------------------------------------------------------ */
+body.home .wp-block-woocommerce-product-collection .wc-block-product {
+	display: flex;
+	flex-direction: column;
+	flex: 0 0 calc(50% - 0.625em);
+	min-width: 0;
+	margin: 0;
+	scroll-snap-align: start;
+}
+
+@media (min-width: 522px) {
+	body.home .wp-block-woocommerce-product-collection .wc-block-product {
+		flex-basis: calc(33.33333% - 0.83333em);
+	}
+}
+
+@media (min-width: 692px) {
+	body.home .wp-block-woocommerce-product-collection .wc-block-product {
+		flex-basis: calc(25% - 0.9375em);
+	}
+}
+
+/* ------------------------------------------------------------------
+ * 3. Product title — max two lines, controlled height
+ * ------------------------------------------------------------------ */
+body.home .wp-block-woocommerce-product-collection .wc-block-product .wp-block-post-title {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	line-height: 1.5;
+	/* Exactly two lines: 1-line and 2-line titles occupy the same box. */
+	min-height: 3em;
+}
+
+/* The theme renders the title anchor as inline-block, which makes it an
+ * atomic box that defeats -webkit-line-clamp. Inline text is required
+ * for the clamp to count lines (works for Persian/Latin/mixed titles). */
+body.home .wp-block-woocommerce-product-collection .wc-block-product .wp-block-post-title a {
+	display: inline;
+}
+
+/* ------------------------------------------------------------------
+ * 4. Price row + Add-to-Cart alignment
+ * ------------------------------------------------------------------ */
+/* Reserve one price line so the price row starts at the same position
+ * in every card (empty prices are real data — no price is invented). */
+body.home .wp-block-woocommerce-product-collection .wc-block-product .wc-block-components-product-price {
+	min-height: 1.65em;
+}
+
+/* Pin the CTA to the card bottom: price/CTA rows and card bottoms
+ * align across the whole visible row. */
+body.home .wp-block-woocommerce-product-collection .wc-block-product .wp-block-woocommerce-product-button {
+	margin-top: auto;
+}
+
+/* On narrow cards the longest CTA label («افزودن به سبد خرید») would
+ * wrap to two lines at the default 20px horizontal padding, shifting
+ * that card's CTA start position. 16px keeps every CTA on one line
+ * (120px text + 32px padding = 152px <= 160px card at 390px). */
+@media (max-width: 521px) {
+	body.home .wp-block-woocommerce-product-collection .wc-block-product .wp-block-woocommerce-product-button .wp-block-button__link {
+		padding-inline: 16px;
+	}
+}
+
+/* ------------------------------------------------------------------
+ * 5. Hide the query-pagination row
+ * ------------------------------------------------------------------
+ * The collection's core/query-pagination block renders a "1 2 3 … N"
+ * row below the product list. In the horizontal-carousel treatment
+ * that row is visually inconsistent (the track scrolls horizontally)
+ * and redundant: every section header already carries a «مشاهده همه»
+ * CTA to the full archive. Hiding it is a display-only change — the
+ * query and its perPage semantics are untouched. */
+body.home .wp-block-woocommerce-product-collection .wp-block-query-pagination {
+	display: none;
+}
+
+/* ------------------------------------------------------------------
+ * 6. Previous/Next navigation controls
+ * ------------------------------------------------------------------
+ * A compact button pair below each track. Scoped to the front-page
+ * carousels only. The buttons are an additional navigation mechanism;
+ * native touch / track scrolling is untouched.
+ */
+body.home .wp-block-woocommerce-product-collection .anishop-carousel-controls {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+body.home .wp-block-woocommerce-product-collection .anishop-carousel-controls__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: 1px solid var(--wp--preset--color--palette-color-5, #e1e8ed);
+	border-radius: 50%;
+	background: var(--wp--preset--color--palette-color-8, #fff);
+	color: var(--wp--preset--color--palette-color-3, #3a4f66);
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+	-webkit-tap-highlight-color: transparent;
+}
+
+body.home .wp-block-woocommerce-product-collection .anishop-carousel-controls__btn:hover:not(:disabled) {
+	background: var(--wp--preset--color--palette-color-6, #f2f5f7);
+	border-color: var(--wp--preset--color--palette-color-1, #2872fa);
+	color: var(--wp--preset--color--palette-color-1, #2872fa);
+}
+
+body.home .wp-block-woocommerce-product-collection .anishop-carousel-controls__btn:focus-visible {
+	outline: 2px solid var(--wp--preset--color--palette-color-1, #2872fa);
+	outline-offset: 2px;
+}
+
+body.home .wp-block-woocommerce-product-collection .anishop-carousel-controls__btn:active:not(:disabled) {
+	background: var(--wp--preset--color--palette-color-6, #f2f5f7);
+}
+
+body.home .wp-block-woocommerce-product-collection .anishop-carousel-controls__btn:disabled {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+
+body.home .wp-block-woocommerce-product-collection .anishop-carousel-controls__icon {
+	display: block;
+	pointer-events: none;
+}

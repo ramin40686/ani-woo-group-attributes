@@ -1,0 +1,51 @@
+/**
+ * Anishop Key Features — frontend styles (Phase 4C).
+ *
+ * Presentation-only styles for the key-features layer (rendered immediately
+ * below the Buy Box / add-to-cart layer on the single product page).
+ *
+ * Visual pattern mirrors Blocksy's `additional_info` layer (`.ct-product-
+ * additional-info`): a `ct-module-title` heading + a `ul > li` list.
+ *
+ * RTL-safe: logical properties only, no hardcoded left/right offsets.
+ * Colors: Blocksy palette tokens only (no new colors introduced).
+ *
+ * @package Anishop
+ */
+
+.ct-product-anishop-key-features {
+	margin-block: 16px;
+}
+
+.ct-product-anishop-key-features .ct-module-title {
+	display: block;
+	margin-block-end: 8px;
+}
+
+.anishop-kf-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.anishop-kf-list li {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5em;
+	padding-block: 2px;
+}
+
+.anishop-kf-list li:not(:last-child) {
+	margin-block-end: 0.3em;
+}
+
+.anishop-kf-label {
+	font-weight: 600;
+	flex: 0 0 auto;
+}
+
+.anishop-kf-value {
+	flex: 1;
+	min-width: 0;
+	color: inherit;
+}

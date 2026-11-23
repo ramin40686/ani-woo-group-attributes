@@ -1,0 +1,527 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Anishop\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-15 00:00+0000\n"
+"PO-Revision-Date: 2026-10-15 00:00+0000\n"
+"Language: fa_IR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "A global policy (not per-product). The native selection remains authoritative."
+msgstr "یک سیاست سراسری (نه به‌ازای هر محصول). انتخاب بومی همچنان مرجع است."
+
+msgid "Account"
+msgstr "حساب کاربری"
+
+msgid "Active Item Color"
+msgstr "رنگ آیتم فعال"
+
+msgid "Add Item"
+msgstr "افزودن آیتم"
+
+msgid "Add row"
+msgstr "افزودن ردیف"
+
+msgid "Add to cart"
+msgstr "افزودن به سبد خرید"
+
+msgid "After adding the file, refresh the settings page."
+msgstr "پس از اضافه‌شدن فایل، صفحه تنظیمات را Refresh کنید."
+
+msgid "Anishop Icons"
+msgstr "آیکن‌های Anishop"
+
+msgid "Anishop Search Box"
+msgstr "آنی باکس جستجو"
+
+msgid "Appearance"
+msgstr "ظاهر"
+
+msgid "Background color"
+msgstr "رنگ پس‌زمینه"
+
+msgid "Between 0 and 24 pixels."
+msgstr "بین ۰ و ۲۴ پیکسل."
+
+msgid "Between 24 and 64 pixels."
+msgstr "بین ۲۴ و ۶۴ پیکسل."
+
+msgid "Blog"
+msgstr "وبلاگ"
+
+msgid "Blue"
+msgstr "آبی"
+
+msgid "Border / Frame"
+msgstr "کادر / حاشیه"
+
+msgid "Border color"
+msgstr "رنگ حاشیه"
+
+msgid "Border width (px)"
+msgstr "ضخامت حاشیه (پیکسل)"
+
+msgid "Buy Box Container"
+msgstr "کانتینر Buy Box"
+
+msgid "Buy Box rows"
+msgstr "ردیف‌های Buy Box"
+
+msgid "Buy Box settings saved."
+msgstr "تنظیمات Buy Box ذخیره شد."
+
+msgid "Cart"
+msgstr "سبد خرید"
+
+msgid "Choose options"
+msgstr "انتخاب گزینه‌ها"
+
+msgid "Color Attributes"
+msgstr "ویژگی‌های رنگ"
+
+msgid "Color Swatch"
+msgstr "نمونهٔ رنگ"
+
+msgid "Color attributes always use the color swatch renderer (fixed)."
+msgstr "ویژگی‌های رنگ همیشه از رندرر نمونهٔ رنگ استفاده می‌کنند (ثابت)."
+
+msgid "Configure how approved presentation types are displayed on the product page (Anishop inline variations)."
+msgstr "نحوهٔ نمایش انواع ارائهٔ تأییدشده در صفحهٔ محصول را پیکربندی کنید (تغییرات درون‌خطی Anishop)."
+
+msgid "Configure the Buy Box container shown on single product pages."
+msgstr "تنظیم کانتینر Buy Box که در صفحهٔ تک‌محصول نمایش داده می‌شود."
+
+msgid "Configure the Key Features section shown below the add-to-cart area on single product pages."
+msgstr "بخش ویژگی‌های کلیدی را که زیر ناحیهٔ افزودن به سبد در صفحات تک‌محصولی نمایش داده می‌شود، پیکربندی کنید."
+
+msgid "Configure the live product search box shown in the site header."
+msgstr "باکس جستجوی زندهٔ محصولات که در هدر سایت نمایش داده می‌شود را تنظیم کنید."
+
+msgid "Configure the mobile bottom navigation bar shown on small screens."
+msgstr "نوار پیمایش پایین موبایل را که در صفحه‌های کوچک نمایش داده می‌شود، پیکربندی کنید."
+
+msgid "Corner radius (px)"
+msgstr "گردی گوشه‌ها (پیکسل)"
+
+msgid "Custom / Product-level Attributes"
+msgstr "ویژگی‌های سفارشی / سطح محصول"
+
+msgid "Custom Link"
+msgstr "پیوند سفارشی"
+
+msgid "Custom text for in-stock products. Leave empty to use the Blocksy default."
+msgstr "متن سفارشی برای محصولات موجود. برای استفاده از مقدار پیش‌فرض Blocksy خالی بگذارید."
+
+msgid "Custom text for out-of-stock products. Leave empty to use the Blocksy default."
+msgstr "متن سفارشی برای محصولات ناموجود. برای استفاده از مقدار پیش‌فرض Blocksy خالی بگذارید."
+
+msgid "Custom text shown when a search request fails. Leave empty to use the Blocksy default."
+msgstr "متن سفارشی که هنگام خطای درخواست جستجو نمایش داده می‌شود. برای استفاده از مقدار پیش‌فرض Blocksy خالی بگذارید."
+
+msgid "Custom text when the search has no results. Leave empty to use the Blocksy default."
+msgstr "متن سفارشی وقتی جستجو نتیجه‌ای ندارد. برای استفاده از مقدار پیش‌فرض Blocksy خالی بگذارید."
+
+msgid "Dark"
+msgstr "تیره"
+
+msgid "Default Attributes"
+msgstr "ویژگی‌های پیش‌فرض"
+
+msgid "Desktop Buy Box"
+msgstr "Buy Box دسکتاپ"
+
+msgid "Desktop Sticky Buy Box"
+msgstr "Buy Box چسبان دسکتاپ"
+
+msgid "Display Variations Inline"
+msgstr "نمایش درون‌خطی تغییرات"
+
+msgid "Display Variations Inline settings saved."
+msgstr "تنظیمات نمایش درون‌خطی تغییرات ذخیره شد."
+
+msgid "Dropdown width (px)"
+msgstr "عرض منوی کشویی (پیکسل)"
+
+msgid "Elevated"
+msgstr "برجسته"
+
+msgid "Enable Buy Box"
+msgstr "فعال‌سازی Buy Box"
+
+msgid "Enable Display Variations Inline"
+msgstr "فعال‌سازی نمایش درون‌خطی تغییرات"
+
+msgid "Enable Key Features display"
+msgstr "فعال‌سازی نمایش ویژگی‌های کلیدی"
+
+msgid "Enable Search Box"
+msgstr "فعال‌سازی باکس جستجو"
+
+msgid "Enable live results"
+msgstr "فعال‌سازی نتایج زنده"
+
+msgid "Enable navbar"
+msgstr "فعال‌سازی نوار پیمایش"
+
+msgid "Enable the Buy Box on single product pages. This is the master switch — the settings below have no effect until this is on."
+msgstr "Buy Box را در صفحات تک‌محصولی فعال کنید. این کلید اصلی است؛ تا روشن نباشد، تنظیمات زیر هیچ اثری ندارند."
+
+msgid "Enable the desktop Buy Box. Prerequisite for the desktop layout; hides the native price to avoid duplication. To use the third column, also enable \"Three-column layout\"."
+msgstr "نمایش Buy Box در دسکتاپ را فعال کنید. پیش‌نیاز چیدمان دسکتاپ است و قیمت بومی را پنهان می‌کند تا تکرار نشود. برای استفاده از ستون سوم، «چیدمان سه‌ستونه» را نیز روشن کنید."
+
+msgid "Enable the search box in the site header. This is the master switch — the settings below have no effect until this is on."
+msgstr "باکس جستجو را در هدر سایت فعال می‌کند. این کلید اصلی است؛ تنظیمات زیر تا روشن‌شدن این گزینه اثری ندارند."
+
+msgid "Enabled"
+msgstr "فعال"
+
+msgid "Error text"
+msgstr "متن خطا"
+
+msgid "Fallback Renderer"
+msgstr "Renderer جایگزین"
+
+msgid "Focus color"
+msgstr "رنگ حالت Focus"
+
+msgid "General"
+msgstr "عمومی"
+
+msgid "Global Buy Box rows"
+msgstr "ردیف‌های سراسری Buy Box"
+
+msgid "Green"
+msgstr "سبز"
+
+msgid "Height (px)"
+msgstr "ارتفاع (پیکسل)"
+
+msgid "Home"
+msgstr "خانه"
+
+msgid "How attributes without an explicit type are rendered."
+msgstr "نحوهٔ نمایش ویژگی‌هایی که نوع مشخصی ندارند."
+
+msgid "Icon"
+msgstr "آیکن"
+
+msgid "Icon size (px)"
+msgstr "اندازهٔ آیکون (پیکسل)"
+
+msgid "If you want a custom icon"
+msgstr "اگر آیکن دلخواه می‌خواهید"
+
+msgid "In stock text"
+msgstr "متن «موجود»"
+
+msgid "Items"
+msgstr "آیتم‌ها"
+
+msgid "Key Features"
+msgstr "ویژگی‌های کلیدی"
+
+msgid "Key Features settings saved."
+msgstr "تنظیمات ویژگی‌های کلیدی ذخیره شد."
+
+msgid "Label"
+msgstr "برچسب"
+
+msgid "Layout"
+msgstr "چیدمان"
+
+msgid "Light"
+msgstr "روشن"
+
+msgid "Link (URL)"
+msgstr "پیوند (URL)"
+
+msgid "Live results"
+msgstr "نتایج زنده"
+
+msgid "Log In"
+msgstr "ورود"
+
+msgid "Max width (px)"
+msgstr "بیشینهٔ عرض (پیکسل)"
+
+msgid "Mobile Bottom Navbar"
+msgstr "نوار پیمایش پایین موبایل"
+
+msgid "Mobile Sticky Buy Bar"
+msgstr "نوار خرید چسبان موبایل"
+
+msgid "Mobile dropdown top (px)"
+msgstr "موقعیت عمودی دراپ‌داون موبایل"
+
+msgid "Monochrome (preferred)"
+msgstr "ترجیحا‌ً تک‌رنگ"
+
+msgid "Move down"
+msgstr "جابه‌جایی به پایین"
+
+msgid "Move item down"
+msgstr "جابه‌جایی آیتم به پایین"
+
+msgid "Move item up"
+msgstr "جابه‌جایی آیتم به بالا"
+
+msgid "Move up"
+msgstr "جابه‌جایی به بالا"
+
+msgid "My Account"
+msgstr "حساب کاربری"
+
+msgid "Navbar Background"
+msgstr "پس‌زمینه نوار"
+
+msgid "Navbar reset to defaults."
+msgstr "نوار پیمایش به تنظیمات پیش‌فرض بازنشانی شد."
+
+msgid "Navbar settings saved."
+msgstr "تنظیمات نوار پیمایش ذخیره شد."
+
+msgid "Navbar settings saved. Some items were not saved because they were invalid (for example a link item without a URL)."
+msgstr "تنظیمات نوار پیمایش ذخیره شد. برخی آیتم‌ها به دلیل نامعتبر بودن (مثلا‌ً یک آیتم پیوند بدون URL) ذخیره نشدند."
+
+msgid "No"
+msgstr "بدون"
+
+msgid "No Border"
+msgstr "بدون کادر"
+
+msgid "No JavaScript"
+msgstr "بدون JavaScript"
+
+msgid "No external resources"
+msgstr "بدون منابع خارجی"
+
+msgid "No results text"
+msgstr "متن «بدون نتیجه»"
+
+msgid "No rows yet. Add one below."
+msgstr "هنوز ردیفی ثبت نشده است. یکی در پایین اضافه کنید."
+
+msgid "On desktop, keep the Buy Box visible while scrolling the product page (it sticks near the top of the viewport). Requires \"Three-column layout\" and \"Desktop Buy Box\"."
+msgstr "در دسکتاپ، Buy Box را هنگام اسکرول صفحهٔ محصول در دید نگه می‌دارد (نزدیک بالای صفحهٔ نمایش می‌چسبد). نیازمند «چیدمان سه‌ستونه» و «Buy Box دسکتاپ» است."
+
+msgid "On desktop, place the Buy Box in its own column (the third column) beside the information column (60/40). When off, it appears below the product information. Requires \"Desktop Buy Box\"."
+msgstr "در دسکتاپ، Buy Box را در ستون جداگانه (ستون سوم) کنار ستون اطلاعات بچینید (نسبت ۶۰/۴۰). اگر خاموش باشد، زیر اطلاعات محصول قرار می‌گیرد. نیازمند «Buy Box دسکتاپ» است."
+
+msgid "On mobile, keep a compact price + add-to-cart bar pinned to the bottom of the screen while scrolling the product page. It reuses the native purchase flow and sits above the mobile bottom navigation when that is enabled."
+msgstr "در موبایل، یک نوار فشردهٔ قیمت + افزودن به سبد خرید را هنگام اسکرول صفحهٔ محصول به پایین صفحه می‌چسباند. از جریان خرید بومی استفاده می‌کند و وقتی نوار پیمایش پایین موبایل فعال باشد، بالای آن قرار می‌گیرد."
+
+msgid "Orange"
+msgstr "نارنجی"
+
+msgid "Out of stock text"
+msgstr "متن «ناموجود»"
+
+msgid "Outline (border only)"
+msgstr "خطی (فقط حاشیه)"
+
+msgid "Placeholder"
+msgstr "Placeholder (متن داخل کادر)"
+
+msgid "Placeholder color"
+msgstr "رنگ Placeholder"
+
+msgid "Preferably"
+msgstr "ترجیحا‌ً"
+
+msgid "Preview"
+msgstr "پیش‌نمایش"
+
+msgid "Project Icons"
+msgstr "آیکن‌های پروژه"
+
+msgid "Purple"
+msgstr "بنفش"
+
+msgid "Recommended features:"
+msgstr "ویژگی‌های پیشنهادی:"
+
+msgid "Remove"
+msgstr "حذف"
+
+msgid "Remove this row?"
+msgstr "این ردیف حذف شود؟"
+
+msgid "Renderer"
+msgstr "Renderer"
+
+msgid "Reserved settings (coming in later stages)"
+msgstr "تنظیمات رزروشده (در مراحل بعدی)"
+
+msgid "Reset to Defaults"
+msgstr "بازنشانی به پیش‌فرض"
+
+msgid "Reusable assurance rows shown at the BOTTOM of the Buy Box (below the add-to-cart trigger) on every product. Product-specific rows (set on each product) appear at the TOP, above the price."
+msgstr "ردیف‌های قابل‌استفادهٔ مجدد که در پایین Buy Box (زیر محرک افزودن به سبد) روی همهٔ محصولات نمایش داده می‌شوند. ردیف‌های اختصاصی محصول (که روی هر محصول تنظیم می‌شوند) در بالا، بالای قیمت نمایش داده می‌شوند."
+
+msgid "Row color"
+msgstr "رنگ ردیف"
+
+msgid "Row style"
+msgstr "سبک ردیف"
+
+msgid "Save Changes"
+msgstr "ذخیره تغییرات"
+
+msgid "Search Box"
+msgstr "باکس جستجو"
+
+msgid "Search Box reset to defaults."
+msgstr "باکس جستجو به پیش‌فرض‌ها بازنشانی شد."
+
+msgid "Search Box settings saved."
+msgstr "تنظیمات باکس جستجو ذخیره شد."
+
+msgid "Selected value"
+msgstr "مقدار انتخاب‌شده"
+
+msgid "Settings"
+msgstr "تنظیمات"
+
+msgid "Shop / Categories"
+msgstr "فروشگاه / دسته‌بندی‌ها"
+
+msgid "Show live product results while typing."
+msgstr "نمایش نتایج زندهٔ محصولات هنگام تایپ."
+
+msgid "Show price"
+msgstr "نمایش قیمت"
+
+msgid "Show stock status"
+msgstr "نمایش وضعیت موجودی"
+
+msgid "Show the product price (and sale price) in the results."
+msgstr "نمایش قیمت (و قیمت تخفیف‌خورده) محصول در نتایج."
+
+msgid "Show the product thumbnail in the results."
+msgstr "نمایش تصویر کوچک محصول در نتایج."
+
+msgid "Show the selected value below the controls"
+msgstr "نمایش مقدار انتخاب‌شده زیر کنترل‌ها"
+
+msgid "Show the stock status in the results."
+msgstr "نمایش وضعیت موجودی در نتایج."
+
+msgid "Show thumbnails"
+msgstr "نمایش تصویر محصولات"
+
+msgid "Small size"
+msgstr "حجم کم"
+
+msgid "Soft (tinted background)"
+msgstr "نرم (پس‌زمینهٔ رنگ‌شده)"
+
+msgid "Soft Gray"
+msgstr "خاکستری ملایم"
+
+msgid "Solid (filled background)"
+msgstr "پر (پس‌زمینهٔ تک‌رنگ)"
+
+msgid "Spacing between controls (px)"
+msgstr "فاصلهٔ بین کنترل‌ها (پیکسل)"
+
+msgid "Stage 2"
+msgstr "مرحله ۲"
+
+msgid "Stage 3"
+msgstr "مرحله ۳"
+
+msgid "Stage 4"
+msgstr "مرحله ۴"
+
+msgid "Stage 5"
+msgstr "مرحله ۵"
+
+msgid "Subtle"
+msgstr "ظریف"
+
+msgid "Swatch shape"
+msgstr "شکل نمونه"
+
+msgid "Swatch size (px)"
+msgstr "اندازهٔ نمونه (پیکسل)"
+
+msgid "System"
+msgstr "سیستمی"
+
+msgid "Text"
+msgstr "متن"
+
+msgid "Text color"
+msgstr "رنگ متن"
+
+msgid "The Buy Box feature is not implemented yet. This section will hold its settings in a later stage."
+msgstr "قابلیت Buy Box هنوز پیاده‌سازی نشده است. این بخش در مرحله‌ای بعدی، تنظیمات آن را خواهد داشت."
+
+msgid "The Buy Box is a price/availability mirror plus a trigger button that drives the native WooCommerce form. The native form — its variation selectors, quantity input, validation, and add-to-cart submission — is preserved untouched and remains the only real purchase path. The settings below control the Buy Box presentation only."
+msgstr "Buy Box یک نمایشگر قیمت/موجودی به‌علاوهٔ یک دکمهٔ محرک است که فرم بومی WooCommerce را هدایت می‌کند. فرم بومی — انتخاب‌گرهای تغییرات، ورود تعداد، اعتبارسنجی و ارسال به سبد خرید — دست‌نخورده باقی می‌ماند و تنها مسیر واقعی خرید است. تنظیمات زیر فقط نمایش Buy Box را کنترل می‌کنند."
+
+msgid "The background/accent color applied to all rows (global and product-specific)."
+msgstr "رنگ پس‌زمینه/تأکیدی که به همهٔ ردیف‌ها (سراسری و اختصاصی محصول) اعمال می‌شود."
+
+msgid "The border color when the input is focused."
+msgstr "رنگ حاشیه هنگام فوکوس روی کادر."
+
+msgid "The distance from the top of the page to the top of the search dropdown on mobile. Match it to the full header height so the dropdown opens exactly below the header."
+msgstr "فاصله شروع دراپ‌داون جستجو از بالای صفحه در موبایل. این مقدار را متناسب با ارتفاع کل هدر تنظیم کنید تا دراپ‌داون دقیقا‌ً زیر هدر نمایش داده شود."
+
+msgid "The height of the search input."
+msgstr "ارتفاع کادر جستجو."
+
+msgid "The link you followed has expired."
+msgstr "پیوندی که دنبال کردید منقضی شده است."
+
+msgid "The maximum width of the search box. The box never overflows its container."
+msgstr "بیشینهٔ عرض باکس جستجو. باکس هرگز از ظرف خود خارج نمی‌شود."
+
+msgid "The navbar is currently disabled."
+msgstr "نوار پیمایش در حال حاضر غیرفعال است."
+
+msgid "The text shown inside the empty search input. Leave empty to use the Blocksy default."
+msgstr "متنی که داخل کادر جستجوی خالی نمایش داده می‌شود. برای استفاده از مقدار پیش‌فرض Blocksy خالی بگذارید."
+
+msgid "The width of the live-results dropdown on desktop (two-column layout). It does not change the search input width. On mobile the dropdown stays one column and fits the screen."
+msgstr "عرض منوی کشویی نتایج زنده در دسکتاپ (چیدمان دو ستونه). این تنظیم عرض کادر جستجو را تغییر نمی‌دهد. در موبایل منوی کشویی یک ستونه می‌ماند و با عرض صفحه هماهنگ است."
+
+msgid "There was a problem with the search. Please try again."
+msgstr "مشکلی در جستجو پیش آمد. لطفاً دوباره تلاش کنید."
+
+msgid "These rows apply ONLY to this product. They appear at the TOP of the Buy Box, above the price. They do not modify the global Buy Box rows (set under Appearance → Anishop → Buy Box Container) or any other product."
+msgstr "این ردیف‌ها فقط برای همین محصول اعمال می‌شوند. در بالای Buy Box، بالای قیمت نمایش داده می‌شوند. آن‌ها ردیف‌های سراسری Buy Box (که در ظاهر ← Anishop ← کانتینر Buy Box تنظیم می‌شوند) یا هیچ محصول دیگری را تغییر نمی‌دهند."
+
+msgid "Three-column layout"
+msgstr "چیدمان سه‌ستونه"
+
+msgid "Title"
+msgstr "عنوان"
+
+msgid "Type"
+msgstr "نوع"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "Used for product-level / custom attributes."
+msgstr "برای ویژگی‌های سطح محصول / سفارشی استفاده می‌شود."
+
+msgid "When disabled, the Key Features section is hidden on single product pages. Saved Key Features are not deleted and will reappear when the switch is turned back on."
+msgstr "در حالت غیرفعال، بخش ویژگی‌های کلیدی در صفحات تک‌محصولی پنهان می‌شود. ویژگی‌های کلیدی ذخیره‌شده حذف نمی‌شوند و پس از فعال‌سازی مجدد دوباره نمایش داده می‌شوند."
+
+msgid "When disabled, the native WooCommerce variation dropdowns are shown exactly as today."
+msgstr "در حالت غیرفعال، فهرست‌های کشویی بومی تغییرات ووکامرس دقیقا‌ً مانند قبل نمایش داده می‌شوند."
+
+msgid "We are still searching..."
+msgstr "هنوز در حال جستجو هستیم..."
+
+msgid "You can prepare a lightweight, monochrome SVG file and place it in the path below:"
+msgstr "می‌توانید یک فایل SVG سبک و تک‌رنگ تهیه کنید و آن را در مسیر زیر قرار دهید:"
+
+msgid "valid"
+msgstr "معتبر"

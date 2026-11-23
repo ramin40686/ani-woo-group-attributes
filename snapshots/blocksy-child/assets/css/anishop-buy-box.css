@@ -1,0 +1,355 @@
+/**
+ * Anishop Buy Box — frontend styles (Stage 2).
+ *
+ * Three-Column Buy Box project, Stage 2:
+ *  - The three-column desktop split (gallery right | info middle | Buy Box left)
+ *    is achieved by turning `.entry-summary` into a CSS grid at `lg` (≥992px)
+ *    ONLY when the `anishop-buy-box-three-col` body class is present. The
+ *    gallery (`.woocommerce-product-gallery`) and its CSS are untouched.
+ *  - The native WooCommerce button is hidden ONLY when BOTH the
+ *    `anishop-buy-box-enabled` body class (PHP, feature active) AND the
+ *    `anishop-buy-box-js` html class (added by the main JS once the trigger is
+ *    wired) are present. A JavaScript failure — or the feature being off —
+ *    therefore leaves the native button visible and the original purchase path
+ *    fully usable.
+ *  - At `md` (768–991px) and below the grid is NOT applied: the Buy Box stays
+ *    in the normal document flow at the end of the summary (the approved mobile
+ *    reading order: gallery → info/variations → full Buy Box).
+ *
+ * All properties use logical (direction-agnostic) values so the layout works
+ * in both RTL and LTR.
+ */
+
+/* =========================================================================
+ * Mobile sticky buy bar — footer clearance (Stage 6C)
+ *
+ * The bar's rendered height is a constant 72px (observed 70.88px across
+ * 320/360/390px viewports). Used by the footer-clearance rule at the bottom
+ * of this file to keep the footer copyright clear of the fixed bar on mobile.
+ * Defined on :root (mirroring --anishop-nav-height in anishop-mobile-nav.css)
+ * but scoped to this feature's file and only consumed by the rule below.
+ * ========================================================================= */
+:root {
+	--anishop-bar-height: 72px;
+}
+
+/* =========================================================================
+ * Buy Box container (all viewports, feature active)
+ * ========================================================================= */
+.anishop-buy-box {
+	margin-block: 8px 0;
+	padding: 20px;
+	border: 1px solid #e5e5e5;
+	border-radius: 8px;
+	background: #fafafa;
+}
+
+.anishop-buy-box__price {
+	margin-block-end: 8px;
+	font-size: 1.25rem;
+	font-weight: 700;
+}
+
+.anishop-buy-box__stock {
+	margin-block-end: 16px;
+}
+
+.anishop-buy-box__stock p {
+	margin: 0;
+}
+
+.anishop-buy-box__action .anishop-buy-box__trigger {
+	width: 100%;
+	cursor: pointer;
+}
+
+.anishop-buy-box__action .anishop-buy-box__trigger:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+/* =========================================================================
+ * Three-column split (lg only, three_column_layout on)
+ *
+ * `.entry-summary` becomes a 2-column grid: the info layers occupy column 1
+ * (the middle, right side in RTL) and the Buy Box occupies column 2 (the left
+ * side in RTL). The 60/40 ratio is of the summary width (i.e. the width
+ * remaining after the gallery).
+ *
+ * The Buy Box is taken OUT of the grid flow (position: absolute) and pinned to
+ * the top of the summary, sized to exactly column 2's width. This is what
+ * decouples its height from the grid rows: while it was a grid item spanning
+ * `grid-row: 1 / -1`, its height forced the rows to grow and the extra space
+ * landed on row 1 (the title row), producing a large gap between the title and
+ * the short description. As an absolutely-positioned element it no longer
+ * contributes to row sizing, so the info layers flow naturally in column 1
+ * with their normal spacing while the Buy Box sits alongside them in column 2.
+ *
+ * `width: calc(40% - 16px)` is exactly column 2's width: 4fr of the
+ * (100% - 40px column-gap) track = 40% - 16px. `inset-inline-end: 0` pins it
+ * to the inline-end edge (the left edge in RTL, where column 2 sits); the
+ * summary has no padding, so this aligns precisely with column 2.
+ * ========================================================================= */
+@media (min-width: 992px) {
+	body.anishop-buy-box-three-col .entry-summary {
+		display: grid;
+		grid-template-columns: 6fr 4fr;
+		column-gap: 40px;
+		align-items: start;
+		position: relative;
+	}
+
+	body.anishop-buy-box-three-col .entry-summary > .anishop-buy-box {
+		position: absolute;
+		inset-block-start: 0;
+		inset-inline-end: 0;
+		width: calc(40% - 16px);
+		margin-block: 0;
+	}
+
+	body.anishop-buy-box-three-col .entry-summary > *:not(.anishop-buy-box) {
+		grid-column: 1;
+	}
+}
+
+/* =========================================================================
+ * Desktop sticky Buy Box (Stage 4, lg only, three_column_layout + sticky on)
+ *
+ * The Buy Box is wrapped in an absolutely-positioned container
+ * (`.anishop-buy-box-sticky-wrap`) that spans the full summary height. The
+ * Buy Box itself becomes `position: sticky` within that container, so it
+ * sticks near the top of the viewport while scrolling. The wrapper is out of
+ * the grid flow (position: absolute), so it does not contribute to the grid's
+ * row sizing (no gap). The wrapper uses `pointer-events: none` so clicks on
+ * the empty area pass through; the Buy Box re-enables `pointer-events: auto`.
+ * ========================================================================= */
+@media (min-width: 992px) {
+	body.anishop-buy-box-three-col.anishop-buy-box-sticky .entry-summary > .anishop-buy-box-sticky-wrap {
+		position: absolute;
+		inset-block-start: 0;
+		inset-inline-end: 0;
+		width: calc(40% - 16px);
+		height: 100%;
+		pointer-events: none;
+	}
+
+	body.anishop-buy-box-three-col.anishop-buy-box-sticky .entry-summary > .anishop-buy-box-sticky-wrap > .anishop-buy-box {
+		position: sticky;
+		top: 20px;
+		width: 100%;
+		margin-block: 0;
+		pointer-events: auto;
+	}
+}
+
+/* =========================================================================
+ * Inline mode (desktop_buy_box on, three_column_layout off)
+ *
+ * The Buy Box stays in the normal document flow (no grid). A light visual
+ * separation is enough; no column split.
+ * ========================================================================= */
+body.anishop-buy-box-inline .anishop-buy-box {
+	margin-block: 16px 0;
+}
+
+/* =========================================================================
+ * Native button hiding (JS-gated)
+ *
+ * The native `.single_add_to_cart_button` is hidden ONLY when the main JS has
+ * wired the Buy Box trigger (it adds `anishop-buy-box-js` to <html>) AND the
+ * feature is active (`anishop-buy-box-enabled` on <body>). If the JS fails to
+ * load or run, the class is never added and the native button remains visible
+ * and functional — the original purchase path is preserved.
+ * ========================================================================= */
+html.anishop-buy-box-js body.anishop-buy-box-enabled .single_add_to_cart_button {
+	display: none;
+}
+
+/* =========================================================================
+ * Buy Box rows (Stage 3)
+ *
+ * Configurable assurance rows rendered as compact, rounded, button-like
+ * elements. Product-specific rows sit at the TOP (above the price); global
+ * rows sit at the BOTTOM (below the trigger). The colors come from the CSS
+ * variables set on the `.anishop-buy-box` container (`--anishop-bb-row-bg`,
+ * `--anishop-bb-row-fg`, `--anishop-bb-row-border`), which are computed from
+ * the global `row_style` + `row_color` settings. All properties use logical
+ * (direction-agnostic) values so the layout works in both RTL and LTR.
+ * ========================================================================= */
+.anishop-buy-box__rows {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+/* Product rows: at the top, above the price. */
+.anishop-buy-box__rows--product {
+	margin-block-end: 12px;
+}
+
+/* Global rows: at the bottom, below the trigger. */
+.anishop-buy-box__rows--global {
+	margin-block-start: 16px;
+}
+
+.anishop-buy-box__row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border: 1px solid var(--anishop-bb-row-border, transparent);
+	border-radius: 8px;
+	background: var(--anishop-bb-row-bg, #f0f0f1);
+	color: var(--anishop-bb-row-fg, #50575e);
+	font-size: 0.875rem;
+	font-weight: 600;
+	line-height: 1.4;
+	text-decoration: none;
+	transition: filter 0.15s ease;
+}
+
+/* A row that is a link gets a subtle hover + a visible keyboard focus. */
+a.anishop-buy-box__row:hover {
+	filter: brightness(0.97);
+}
+
+a.anishop-buy-box__row:focus-visible {
+	outline: 2px solid var(--anishop-bb-row-fg, #2872fa);
+	outline-offset: 2px;
+}
+
+.anishop-buy-box__row-icon-wrap {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.anishop-buy-box__row-icon {
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
+}
+
+.anishop-buy-box__row-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.anishop-buy-box__row-title {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.anishop-buy-box__row-desc {
+	font-size: 0.75rem;
+	font-weight: 400;
+	opacity: 0.85;
+	overflow-wrap: anywhere;
+}
+
+/* =========================================================================
+ * Mobile sticky buy bar (Stage 5, mobile-only <992px)
+ *
+ * A compact fixed bar (price + trigger) pinned to the bottom of the viewport
+ * on mobile, so the price and the add-to-cart action stay reachable while the
+ * user scrolls the product page (where the full Buy Box sits far down the
+ * normal document flow).
+ *
+ *  - The bar is a MIRROR of the Buy Box (which mirrors the native state); its
+ *    button drives the SAME single native form (see anishop-buy-box.js). No
+ *    second form, no second source of truth.
+ *  - Shown ONLY on mobile (<992px, where the three-column layout is NOT
+ *    active) AND only when the Buy Box is active (`anishop-buy-box-enabled`
+ *    on <body>) AND the JS has wired it (`anishop-buy-box-js` on <html>) — so
+ *    a JavaScript failure (or the feature being off) leaves the bar hidden
+ *    and the native button visible/functional.
+ *  - Positioned ABOVE the mobile navbar when the navbar is present (the JS
+ *    adds the `--nav` modifier); otherwise it sits at the very bottom.
+ *  - z-index 9998 keeps it above page content but below the mobile navbar
+ *    (9999), so the navbar always wins if they ever overlap.
+ *
+ * All properties use logical (direction-agnostic) values so the layout works
+ * in both RTL and LTR.
+ * ========================================================================= */
+.anishop-buy-box-mobile-bar {
+	display: none;
+}
+
+@media (max-width: 991px) {
+	html.anishop-buy-box-js body.anishop-buy-box-enabled .anishop-buy-box-mobile-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		position: fixed;
+		bottom: env(safe-area-inset-bottom);
+		left: 0;
+		right: 0;
+		z-index: 9998;
+		box-sizing: border-box;
+		padding: 10px 16px;
+		background: #ffffff;
+		border-top: 1px solid #e5e5e5;
+		box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	/* When the mobile navbar is present, sit the bar above it. The navbar's
+	   total height is `--anishop-nav-height` (56px) + its 1px top border +
+	   the safe-area inset (see anishop-mobile-nav.css). */
+	html.anishop-buy-box-js body.anishop-buy-box-enabled .anishop-buy-box-mobile-bar--nav {
+		bottom: calc(var(--anishop-nav-height, 56px) + 1px + env(safe-area-inset-bottom));
+	}
+
+	.anishop-buy-box-mobile-bar__price {
+		margin: 0;
+		font-size: 1.05rem;
+		font-weight: 700;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.anishop-buy-box-mobile-bar__price .woocommerce-Price-amount {
+		font-size: inherit;
+		font-weight: inherit;
+	}
+
+	.anishop-buy-box-mobile-bar__trigger {
+		flex-shrink: 0;
+		cursor: pointer;
+		padding: 10px 18px;
+	}
+
+	.anishop-buy-box-mobile-bar__trigger:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+}
+
+/* =========================================================================
+ * Mobile sticky buy bar — footer clearance (Stage 6C)
+ *
+ * On mobile (<992px) the fixed buy bar sits above the mobile navbar and can
+ * overlap the footer copyright (finding F1). This rule adds the bar's height
+ * to the existing navbar footer clearance (defined in anishop-mobile-nav.css)
+ * so the copyright stays fully visible at the bottom of the page.
+ *
+ * Gated on the bar ACTUALLY being rendered:
+ *  - `html.anishop-buy-box-js` — the JS has loaded and wired the bar.
+ *  - `body.anishop-buy-box-enabled` — the Buy Box feature is active.
+ *  - `:has(.anishop-buy-box-mobile-bar)` — the bar element is in the DOM.
+ * A JavaScript failure, the feature being off, or the bar not being rendered
+ * therefore leaves the navbar-only clearance in place (no extra padding).
+ *
+ * Higher specificity than the navbar-only `#footer` rule, so it wins when the
+ * conditions are met; no `!important` is used.
+ * ========================================================================= */
+@media (max-width: 991px) {
+	html.anishop-buy-box-js body.anishop-buy-box-enabled:has(.anishop-buy-box-mobile-bar) #footer {
+		padding-bottom: calc(var(--anishop-nav-height) + 1px + var(--anishop-bar-height) + env(safe-area-inset-bottom));
+	}
+}

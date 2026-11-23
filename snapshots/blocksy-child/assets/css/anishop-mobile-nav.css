@@ -1,0 +1,201 @@
+/**
+ * Anishop mobile bottom navigation.
+ *
+ * Mobile/tablet only (max-width: 1024px, matching Blocksy's tablet
+ * breakpoint). Hidden on desktop. CSS-first: fixed positioning, layout,
+ * active state, safe-area spacing and the content bottom offset are all
+ * handled here. No JavaScript.
+ *
+ * Stacking: z-index 9999 keeps the bar above page content but below the
+ * Blocksy lightbox (100000+) and the Blocksy Companion cookie banner
+ * (999999), so it never obscures those fixed UI elements.
+ */
+
+:root {
+	--anishop-nav-height: 56px;
+}
+
+.anishop-mobile-nav {
+	display: none;
+
+	/* B6-15 appearance presets — default values reproduce the current look
+	   exactly, so an installation with no stored appearance configuration is
+	   visually unchanged. The preset classes below override these. */
+	--anishop-nav-bg: var(--theme-palette-color-8, #ffffff);
+	--anishop-nav-text: var(--theme-palette-color-3, #3a4f66);
+	--anishop-nav-active: var(--theme-palette-color-1, #2872fa);
+	--anishop-nav-border: 1px solid var(--theme-palette-color-5, #e1e8ed);
+	--anishop-nav-shadow: none;
+}
+
+/* B6-15 appearance presets — Navbar Background. The `dark` preset also lightens
+   the item text so the bar stays readable on a dark surface. */
+.anishop-mobile-nav--bg-light {
+	--anishop-nav-bg: var(--theme-palette-color-8, #ffffff);
+	--anishop-nav-text: var(--theme-palette-color-3, #3a4f66);
+}
+
+.anishop-mobile-nav--bg-dark {
+	--anishop-nav-bg: #1d2327;
+	--anishop-nav-text: #f0f0f1;
+}
+
+.anishop-mobile-nav--bg-soft-gray {
+	--anishop-nav-bg: #f0f0f1;
+	--anishop-nav-text: var(--theme-palette-color-3, #3a4f66);
+}
+
+/* B6-15 appearance presets — Active Tab Color. One custom property drives all
+   three active-state components (label, icon via currentColor, upper line). */
+.anishop-mobile-nav--active-blue {
+	--anishop-nav-active: var(--theme-palette-color-1, #2872fa);
+}
+
+.anishop-mobile-nav--active-green {
+	--anishop-nav-active: #00a32a;
+}
+
+.anishop-mobile-nav--active-orange {
+	--anishop-nav-active: #e8590c;
+}
+
+.anishop-mobile-nav--active-purple {
+	--anishop-nav-active: #7b1fa2;
+}
+
+/* B6-15 appearance presets — Border / Frame. The 1px top border is always kept
+   (so the bar height and the footer offset never shift); `none` simply makes
+   it transparent. `elevated` adds a restrained, cheap shadow. */
+.anishop-mobile-nav--border-none {
+	--anishop-nav-border: 1px solid transparent;
+}
+
+.anishop-mobile-nav--border-subtle {
+	--anishop-nav-border: 1px solid var(--theme-palette-color-5, #e1e8ed);
+}
+
+.anishop-mobile-nav--border-elevated {
+	--anishop-nav-border: 1px solid #dcdcde;
+	--anishop-nav-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 1024px) {
+
+	.anishop-mobile-nav {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+		align-items: stretch;
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		width: 100%;
+		z-index: 9999;
+		box-sizing: border-box;
+		background: var(--anishop-nav-bg);
+		border-top: var(--anishop-nav-border);
+		box-shadow: var(--anishop-nav-shadow);
+		/* Reserve space for devices with a home indicator. */
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+
+	.anishop-mobile-nav__item {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 3px;
+		flex: 1 1 0;
+		min-height: var(--anishop-nav-height);
+		padding: 7px 4px 6px;
+		text-decoration: none;
+		color: var(--anishop-nav-text);
+		-webkit-tap-highlight-color: transparent;
+		transition: color 0.18s ease;
+	}
+
+	.anishop-mobile-nav__icon {
+		display: block;
+		width: 24px;
+		height: 24px;
+		line-height: 0;
+	}
+
+	.anishop-mobile-nav__icon svg {
+		display: block;
+		width: 24px;
+		height: 24px;
+	}
+
+	.anishop-mobile-nav__label {
+		font-size: 11px;
+		line-height: 1.25;
+		font-weight: 500;
+		white-space: nowrap;
+	}
+
+	/* Active state: the selected active color + a small top indicator. One
+	   custom property (--anishop-nav-active) drives the label, the icon (via
+	   currentColor) and the upper line. */
+	.anishop-mobile-nav__item.is-active {
+		color: var(--anishop-nav-active);
+	}
+
+	.anishop-mobile-nav__item.is-active .anishop-mobile-nav__label {
+		font-weight: 700;
+	}
+
+	.anishop-mobile-nav__item.is-active::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 26px;
+		height: 3px;
+		border-radius: 0 0 3px 3px;
+		background: var(--anishop-nav-active);
+	}
+
+	/* Cart count badge (visual only; count is in the link's aria-label). */
+	.anishop-mobile-nav__badge {
+		position: absolute;
+		top: 3px;
+		left: 50%;
+		transform: translateX(5px);
+		min-width: 18px;
+		height: 18px;
+		padding: 0 5px;
+		box-sizing: border-box;
+		border-radius: 9px;
+		background: var(--theme-palette-color-1, #2872fa);
+		color: var(--theme-palette-color-8, #ffffff);
+		font-size: 11px;
+		font-weight: 700;
+		line-height: 18px;
+		text-align: center;
+		pointer-events: none;
+	}
+
+	/* Logged-in account state: subtle filled dot is unnecessary; the label
+	   already changes server-side. Keep the icon slightly emphasized. */
+	.anishop-mobile-nav__item.is-logged-in .anishop-mobile-nav__icon svg {
+		stroke-width: 2.25;
+	}
+
+	/* Visible keyboard focus. */
+	.anishop-mobile-nav__item:focus-visible {
+		outline: 2px solid var(--theme-palette-color-1, #2872fa);
+		outline-offset: -2px;
+		border-radius: 8px;
+	}
+
+	/* Keep the last page content clear of the fixed bar. The footer is the
+	   last in-flow element in Blocksy, so offsetting it reserves the space.
+	   +1px accounts for the bar's top border. */
+	#footer {
+		padding-bottom: calc(var(--anishop-nav-height) + 1px + env(safe-area-inset-bottom));
+	}
+}

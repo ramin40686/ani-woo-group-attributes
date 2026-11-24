@@ -28,24 +28,25 @@ attributes (1521 entries, 399 distinct names). GPA's value-selection UI and rend
 handle both. Value sources: `wc_get_product_terms()` for taxonomy; parsed `value` string
 for custom.
 
-### R-L2 — Multi-delimiter value normalization `[LIVE-VERIFIED 2026-11-24]`
+### R-L2 — Multi-delimiter values exist; normalization DEFERRED `[LIVE-VERIFIED 2026-11-24]`
 **0** custom attributes use the WC-standard pipe; **259** use the Persian comma `،`
 (U+060C); **41** use the ASCII comma `,`. All 294 multi-value custom attributes currently
 render as single unsplit values on the frontend (live proof: product 4328, `نوع کاربری`
-→ `رسمی، روزمره، ورزشی`). GPA's parser must normalize `|`, `،`, and `,` into value lists.
-**Decision needed (Phase 2):** read-only display normalization (S1, recommended) vs data
-migration (S2, rejected as default). Because some comma strings are spec lists, not value
-lists, S1 needs a per-attribute "single value" override.
+→ `رسمی، روزمره، ورزشی`). **Owner decision D20 (Phase 1.1): delimiter normalization is
+DEFERRED** — GPA must respect the actual stored values and must not silently split them
+with an unapproved heuristic. The owner may later decide whether commas represent separate
+values or part of a single value. Until then, GPA renders stored values as-is.
 
 ### R-L3 — Product type via taxonomy, not meta `[WC 11.3.1 SOURCE]`
 WC 11.3.1 stores product type in the `product_type` taxonomy; `_product_type` meta does
 not exist on this site (0 rows). GPA must use `$product->get_type()` / the taxonomy.
 
 ### R-L4 — "Variable-typed without variations" is the norm `[LIVE-VERIFIED 2026-11-24]`
-293 products are variable-typed, but only **3** have actual `product_variation` children
-(33 variation posts total). 287 variable-typed products have `is_variation=1` attributes
-with no variations. GPA must **not** assume variations exist; variation-linked attribute
-semantics apply only to `get_variation_attributes()` output.
+292 products are variable-typed (all statuses; 289 published), but only **3** have actual
+`product_variation` children (33 variation posts total). 287 variable-typed products have
+`is_variation=1` attributes with no variations. GPA must **not** assume variations exist;
+variation-linked attribute semantics apply only to `get_variation_attributes()` output.
+The parent product is the primary attribute source (D15).
 
 ### R-L5 — Data anomalies to tolerate, not fix `[LIVE-VERIFIED 2026-11-24]`
 - Stale `product_type` term counts (`variable` term `count=0` but 293 members).
@@ -78,23 +79,33 @@ bilingual (English source + Persian `.mo`, text domain `anishop`).
 memory fatal during auditing — GPA's admin screens (group list, product load) must use
 batched/raw queries and pagination, not per-product object loops.
 
+### R-L11 — `tax_query` on `product_type` is broken on this site `[LIVE-VERIFIED 2026-11-24, Phase 1.1]`
+The `product_type` term counts are stale (`variable` reports `count=0` while holding 292
+products). Because `WP_Query` resolves tax_query terms via `get_terms( hide_empty=true )`,
+a `tax_query` for `product_type => variable` returns **0 rows**. GPA must detect product
+type via the API (`$product->get_type()` / `is_type( 'variable' )`) or
+`get_the_terms( $id, 'product_type' )` — **never** via `tax_query` or `term->count`.
+
 ## 3. Non-goals (confirmed)
 
 - No runtime dependency on the reference plugin or Blocksy Pro.
 - No new plugins, no JS frameworks, no page builders.
 - No modification of Blocksy core, WC core, or existing child-theme modules.
-- No data migration of native attributes (S2 rejected as default).
-- No fix of pre-existing data anomalies (R-L5).
+- **No delimiter normalization / data migration of native attributes** (D20 — deferred; S2 rejected).
+- **No fix of pre-existing data anomalies** (R-L5, D21) — including stale `product_type`
+  term counts and the broken `tax_query` (R-L11). GPA tolerates them.
+- **No production catalog cleanup** (D21).
 
 ## 4. Open product questions (for owner / Phase 2)
 
-1. **ASCII comma as separator** (R-L2): treat `,` as a value separator, or only `،` and
-   `|`? Evidence: 41 custom attributes use ASCII comma; some are value lists
-   (`پلاستیک ABS, پلی کربنات`), some are spec strings (`4K@24/25/30/60fps, 1080p@...`).
-   Recommendation: support all three delimiters **plus** a per-attribute single-value
-   override.
-2. **"View Attribute" button behavior** (D10): unspecified in reference docs — see
-   `reference-plugin-analysis.md` §5.
-3. **Group vs product value authority:** when a group defines values and a product selects
+1. **ASCII comma as separator** (R-L2) — **DEFERRED (D20).** The owner may later decide
+   whether commas in existing values represent separate values or part of a single value.
+   GPA must not assume either until then. (Evidence retained: 41 custom attributes use
+   ASCII comma; some are value lists, some are spec strings.)
+2. **"View Attribute" button behavior** (D18): unspecified in reference docs — to be
+   investigated in Phase 2; see `reference-plugin-analysis.md` §5.
+3. **Native `shop_attributes` table visibility** (D17): default is visible + optional hide
+   setting; final UX confirmation pending Phase 2.
+4. **Group vs product value authority:** when a group defines values and a product selects
    a subset, the product's selection wins (per reference workflow). Confirmed by spec;
    no conflict found.

@@ -58,18 +58,28 @@ product-rows), search-box. Plus the header search panel under `inc/panel-builder
   `woocommerce_product_attribute` action inside the product summary; Blocksy's
   WooCommerce single-product layout includes it as a layer.
 
-**GPA rendering options (Phase 2 decision):**
+**GPA rendering direction — B1 SELECTED (owner decision D16, Phase 1.1):**
 
-- **R1 — Custom layer (recommended):** render GPA group tables via
-  `blocksy:woocommerce:product:custom:layer` at a configurable position (matches the
-  "location" setting in ROADMAP §1.4 and the house pattern).
-- **R2 — Filter the native table:** hook `woocommerce_product_attribute` /
-  `woocommerce_get_product_attribute` to re-render grouped rows inside the native table.
-  Tighter to the native markup but couples GPA to WC template internals and to
-  `persian-woocommerce`'s possible filters.
-- **R3 — Template override:** override `single-product/product-attributes.php` in the
-  child theme. Rejected: the child theme currently has **no** template overrides, and a
-  block-theme child overriding a WC template is fragile across WC updates.
+- **Proven (existing, live-verified):** the buy-box and inline-variations modules already
+  render via **Blocksy custom layers** — the `blocksy:woocommerce:product:custom:layer`
+  action (and layout filter `blocksy:woocommerce:product-single:layout` where needed). This
+  is the established, Pro-free way to inject content into the single-product page.
+- **Selected (GPA direction, NOT yet runtime-verified):** GPA will render its own grouped
+  tables via the Blocksy custom layer at a configurable position (matches the "location"
+  setting in ROADMAP §1.4 and the house pattern). The exact hook, registration mechanism,
+  and render position must be verified against the installed Blocksy 2.1.62 during Phase 2.
+  **Do not claim B1 is operational — it is a selected direction, not a tested implementation.**
+- **Rejected alternatives:**
+  - **R2 — Filter the native table:** hook `woocommerce_product_attribute` /
+    `woocommerce_get_product_attribute` to re-render grouped rows inside the native table.
+    Tighter to the native markup but couples GPA to WC template internals and to
+    `persian-woocommerce`'s possible filters.
+  - **R3 — Template override:** override `single-product/product-attributes.php` in the
+    child theme. Rejected: the child theme currently has **no** template overrides, and a
+    block-theme child overriding a WC template is fragile across WC updates.
+- **Native table (D17):** remains visible by default; GPA tables render independently; a
+  setting can hide the native table; the native table must never disappear when GPA has no
+  renderable content.
 
 ## 4. Presentation-layer precedent (D9)
 
@@ -91,9 +101,11 @@ flags, or variation semantics. GPA will follow the same contract:
   `ani_gpa_group_cat`).
 - **Product edit screen:** "create group for this product" toggle + "Manage Attribute
   Groups" (load one group) + "Load Group Categories" (load all groups of a category) +
-  per-product group sorting. Attaches to the product data panel
-  (`woocommerce_product_options_general_product_data`) or a dedicated metabox — Phase 2
-  decision; save via `woocommerce_process_product_meta` with nonce + `edit_product` cap.
+  per-product group sorting. Attaches to the product data panel's **Attributes tab**
+  (`woocommerce_product_options_attributes`, `html-product-data-attributes.php:69`) or a
+  dedicated metabox — Phase 2 decision. (Note: `woocommerce_product_options_general_product_data`
+  is the **General** tab, not the Attributes tab.) Save via `woocommerce_process_product_meta`
+  with nonce + `edit_product` cap.
 - **Settings tab** (Appearance → Anishop): table style, location, table colors,
   "View Attribute" shop-page button toggle (D10: behavior to be replicated from the
   reference plugin — see `reference-plugin-analysis.md` §5).

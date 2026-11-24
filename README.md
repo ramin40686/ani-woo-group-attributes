@@ -22,4 +22,6 @@ WooCommerce **Product Group Attributes** manager — developed as an isolated mo
 
 ## Status
 
-**Phase 0: complete. Phase 1 (investigation): prepared, awaiting explicit project-owner authorization to begin (not started).** See `docs/PROJECT-ROADMAP.md`.
+**Phase 0, Phase 1 (investigation), and Phase 1.1 (decisions finalization + testing policy) are complete. Phase 2 (architecture design) is NOT STARTED — awaiting explicit project-owner authorization.** See `docs/PROJECT-ROADMAP.md`.
+
+Selected architecture direction (for Phase 2 design, not yet implemented): **A1** (CPT `ani_gpa_group` + taxonomy `ani_gpa_group_cat` + product meta + Theme Mod) + **B1** (Blocksy custom-layer rendering). Delimiter normalization (C) is deferred. See `.clinerules/decisions.md` (D14–D23).

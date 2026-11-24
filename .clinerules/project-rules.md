@@ -188,6 +188,66 @@ Do **not** automatically begin another phase or task.
 - Frontend UI: Persian, RTL.
 - Technical terms (e.g. Renderer, Swatch) may stay English in admin UI (established convention).
 
+## Test Environment Policy (PERMANENT — Phase 1.1, 2026-11-24)
+
+> Authoritative, project-wide testing policy. Applies to **all** future GPA development
+> phases. Decision D23. Registry: `docs/testing/test-fixtures.md`.
+
+### Designated test fixtures
+
+Two existing Anishop products are the **permanent** GPA development/testing fixtures:
+
+| Role | Product ID | Name | Type | Real variation children |
+|------|-----------|------|------|-------------------------|
+| Simple fixture | **13143** | ماشین اصلاح فیلیپس مدل OneBlade QP2824/10 (Philips OneBlade QP2824/10) | simple | n/a |
+| Variable fixture | **17028** | گوشی موبایل وان پلاس مدل 15 (OnePlus 15) | variable | **16** |
+
+Both were backed up **before** any modification (raw, byte-exact JSON incl. post, all meta,
+all term relationships, and variation children) to `backups/gpa-test-fixtures/` (gitignored —
+never committed). Restoration was verified on hidden test copies (17601, 17602) that match the
+originals byte-for-byte. See the registry for backup locations and restoration procedure.
+
+### Permanent testing authorization
+
+Within the designated fixtures **and** products explicitly created as GPA test fixtures
+(duplicates of the fixtures), Cline is authorized to:
+
+- Add, edit, and remove attributes (global and custom).
+- Create new global attributes and taxonomy terms when necessary.
+- Create, edit, and delete GPA groups and group categories.
+- Assign groups to test products; change selected attribute values; reorder groups/values.
+- Change product attributes and relevant product metadata.
+- Create additional test products by duplicating the fixtures; create as many additional
+  test groups, attributes, and products as reasonably needed.
+
+**There is no requirement to clean up these test fixtures after every task or phase.**
+Accumulated test data may remain available throughout the project.
+
+### Strict isolation boundary
+
+This authorization applies **ONLY** to the designated fixtures and explicitly-created GPA
+test fixtures. It does **NOT** authorize Cline to:
+
+- Modify unrelated live products, customer orders, or customer data.
+- Change real store inventory or pricing.
+- Modify production product attributes outside the test fixtures.
+- Change global WooCommerce settings unrelated to GPA.
+- Modify production theme modules or unrelated site configuration.
+- Perform bulk operations on the live catalog.
+
+Global attribute definitions and taxonomy terms are shared across products. **Before
+creating, renaming, modifying, or deleting any global attribute or term, inspect whether it
+is already used by non-test products.** Never rename or delete a shared production attribute
+or term merely for testing. Prefer uniquely named test attributes/terms with a clear prefix,
+e.g. `GPA TEST — ...`. If an operation could affect non-test products, **stop and report**
+before proceeding.
+
+### Test-fixture naming & registry
+
+- Test-only products/attributes/terms use the `GPA TEST — ` prefix.
+- Every fixture, backup, test attribute/term, group, and category is recorded in
+  `docs/testing/test-fixtures.md`, which must be kept current as the project evolves.
+
 # General WordPress Rules (global rule bank + reasoning policy)
 
 > **Verified 2026-11-15 (Phase 0.2):** Cline loads a **global rule bank** from

@@ -2,7 +2,7 @@
 
 Advanced WooCommerce Product Group Attributes manager in the free version of the Blocksy WordPress theme
 
-Project status: **Phase 0 complete — Phase 1 (investigation) prepared, awaiting explicit owner authorization (not started)**
+Project status: **Phase 0 + Phase 1 + Phase 1.1 complete — Phase 2 (architecture design) NOT STARTED, awaiting explicit owner authorization**
 Project type: WordPress / Blocksy / WooCommerce
 Target website: Anishop
 Target URL: http://anishop.local
@@ -96,7 +96,7 @@ Tasks:
 
 ### Phase 1 – Environment and Architecture Inspection
 
-Status: **PREPARED — awaiting explicit owner authorization (not started)**
+Status: **COMPLETE (2026-11-24)** — branch `phase-1-investigation`, commit `67f70ad`. Five research docs under `docs/research/` + synthesis report `reports/2026-11-24-phase-1-investigation.md`.
 
 Objective: Understand the actual free WooCommerce attribute architecture and the WooCommerce Group Attributes plugin architecture.
 
@@ -117,9 +117,35 @@ Tasks:
 
 ⸻
 
+### Phase 1.1 – Decisions Finalization & Testing Policy
+
+Status: **COMPLETE (2026-11-24)** — branch `phase-1-1-decisions-finalization`.
+
+Objective: Transition from Phase 1 investigation to an approved, internally consistent
+product direction. Documentation, decision-finalization, and test-environment preparation
+only — **no implementation**.
+
+Tasks (all completed):
+
+1. Formalize the owner's decisions (recorded as D14–D23 in `decisions.md`).
+2. Add a permanent test-environment + isolation policy to `project-rules.md`.
+3. Correct technical inaccuracies in the Phase 1 docs (product-data-panel hooks,
+   `wc_attributes_array_filter_visible` terminology, API signatures, Blocksy integration
+   provenance, numeric discrepancies).
+4. Establish the selected architecture direction **A1 + B1** (C deferred) without
+   implementing it.
+5. Prepare two permanent test products (Simple 13143, Variable 17028) with byte-exact
+   backups and restoration verification; create the fixture registry
+   `docs/testing/test-fixtures.md`.
+6. Produce the completion report `reports/2026-11-24-phase-1-1-decisions-finalization.md`.
+
+**No implementation. No Phase 2 start. No merge into `main`.**
+
+⸻
+
 ### Phase 2 – Architecture Design and Approval
 
-Status: NOT STARTED
+Status: **NOT STARTED — awaiting explicit owner authorization**
 
 Objective: Define the final implementation before coding.
 

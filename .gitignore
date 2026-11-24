@@ -13,3 +13,6 @@ desktop.ini
 temp/
 .tmp-*/
 *.log
+
+# GPA test-fixture backups (production data — never commit)
+backups/

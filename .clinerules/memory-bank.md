@@ -44,11 +44,18 @@
 
 ## Current State
 
-- **Phase:** 0 complete; Phase 1 (investigation) prepared — awaiting explicit owner authorization, not started
-- **Documentation:** workspace docs finalized 2026-11-23 (rules, roadmap, context, environment, conventions, decisions)
-- **Repository:** baseline pushed to `main` 2026-11-23; per-phase branch workflow active (see `project-rules.md` §Git Workflow & Repository)
-- **Next:** owner authorization → Phase 1 investigation on branch `phase-1-investigation` (see `docs/PROJECT-ROADMAP.md` §3) → evidence-based report + options A/B/C → owner approval → Phase 2
+- **Phase:** 0 complete · Phase 1 (investigation) **COMPLETE** (2026-11-24, branch `phase-1-investigation`, commit `67f70ad`) · Phase 1.1 (decisions finalization + testing policy) **COMPLETE** (2026-11-24, branch `phase-1-1-decisions-finalization`) · Phase 2 **NOT STARTED — awaiting explicit owner authorization**
+- **Architecture direction (selected, not implemented):** A1 (data ownership) + B1 (Blocksy custom layer). C (delimiter normalization) **deferred** (D20). See `decisions.md` D22.
+- **Documentation:** Phase 1 research docs + synthesis report; Phase 1.1 corrected technical inaccuracies, recorded owner decisions D14–D23, added permanent test-environment policy.
+- **Repository:** `main` at `2b4b090` (last approved state); Phase 1 + Phase 1.1 on their own branches, not merged (awaiting owner approval).
+- **Next:** owner reviews Phase 1.1 report → explicit authorization → Phase 2 architecture design on branch `phase-2-architecture` (see `docs/PROJECT-ROADMAP.md` §3).
+
+## Test Fixtures (permanent — D23)
+
+- **Simple:** product **13143** (Philips OneBlade QP2824/10) · **Variable:** product **17028** (OnePlus 15, 16 real variation children).
+- Backups (raw, byte-exact): `backups/gpa-test-fixtures/` (gitignored). Restoration-verified on hidden copies **17601** (simple) and **17602** (variable).
+- Full policy: `project-rules.md` §Test Environment Policy · Registry: `docs/testing/test-fixtures.md`.
 
 ## Decisions
 
-See `decisions.md` (D1–D13).
+See `decisions.md` (D1–D23). Phase 1.1 added D14–D23 (dual attribute support, parent-first, B1 selected, native-table visibility, View Attribute deferred, persian-woocommerce testing, delimiter normalization deferred, no catalog cleanup, A1+B1 direction, test-fixture policy).

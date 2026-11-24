@@ -12,19 +12,23 @@ ready for Phase 2 design and owner approval.
 
 **Headline findings:**
 
-1. **Delimiter anomaly (critical):** Anishop's custom attributes never use the
+1. **Delimiter anomaly (critical, DEFERRED):** Anishop's custom attributes never use the
    WC-standard pipe. 259 use the Persian comma `،`, 41 use the ASCII comma `,`. All 294
    multi-value custom attributes currently render as single unsplit values on the
-   frontend (live proof: product 4328). GPA must normalize `|`, `،`, `,` at read time.
+   frontend (live proof: product 4328). **Owner decision D20 (Phase 1.1): delimiter
+   normalization is DEFERRED** — GPA must respect stored values as-is and must not
+   silently split them with an unapproved heuristic.
 2. **Product type is a taxonomy in WC 11.3.1:** `_product_type` meta does not exist on
-   this site (0 rows); type comes from the `product_type` taxonomy (293 variable, 43
-   simple). GPA must use the API/taxonomy, never the meta.
-3. **"Variable-typed without variations" is the norm:** 293 variable-typed products, but
+   this site (0 rows); type comes from the `product_type` taxonomy (292 variable, 42
+   simple — corrected in Phase 1.1). GPA must use the API/`get_the_terms`, never the meta
+   and never `tax_query` (broken on this site due to stale term counts).
+3. **"Variable-typed without variations" is the norm:** 292 variable-typed products, but
    only 3 have actual variation children (33 variation posts). GPA must not assume
-   variations exist.
+   variations exist; the parent product is the primary attribute source (D15).
 4. **Presentation-layer integration is the proven house pattern:** the existing
    inline-variations and buy-box modules render via Blocksy custom layers without
-   touching native data — exactly the contract D9 requires.
+   touching native data — exactly the contract D9 requires. **B1 (Blocksy custom layer)
+   is the selected rendering direction (D16), not yet runtime-verified.**
 
 ## 2. Deliverables (changed files)
 
@@ -78,36 +82,39 @@ Consolidated raw audit output was captured at `/tmp/gpa-consolidated-audit.txt`
 
 ## 5. Recommendations (for Phase 2 approval)
 
-- **A1 — Data ownership:** CPT `ani_gpa_group` + taxonomy `ani_gpa_group_cat` + product
-  meta `_ani_gpa_assigned_groups` / `_ani_gpa_selected_values` + Theme Mod settings
-  (the already-decided data model).
-- **B1 — Rendering:** Blocksy custom layer (`blocksy:woocommerce:product:custom:layer`),
-  configurable position; native table untouched.
-- **C1 — Value parsing:** read-only display normalization splitting on `|`, `،`, `,`
-  with a per-attribute single-value override; **no data migration**.
+> **Superseded by Phase 1.1 (2026-11-24):** the owner finalized the direction as
+> **A1 + B1** with **C deferred** (decisions D14–D23). See
+> `reports/2026-11-24-phase-1-1-decisions-finalization.md`.
+
+- **A1 — Data ownership (SELECTED, D22):** CPT `ani_gpa_group` + taxonomy
+  `ani_gpa_group_cat` + product meta `_ani_gpa_assigned_groups` / `_ani_gpa_selected_values`
+  + Theme Mod settings (the already-decided data model).
+- **B1 — Rendering (SELECTED, D16):** Blocksy custom layer
+  (`blocksy:woocommerce:product:custom:layer`), configurable position; native table visible
+  by default (D17), optional hide setting. **Not yet runtime-verified.**
+- **C — Value parsing (DEFERRED, D20):** read-only display normalization splitting on
+  `|`, `،`, `,` is **not** in the current scope. GPA renders stored values as-is.
 
 Full rationale, rejected alternatives, and risks:
 `docs/research/architecture-options-and-recommendations.md`.
 
 ## 6. Open questions requiring owner input
 
-1. **ASCII comma as separator** — recommend supporting it (41 live attributes) with the
-   per-attribute override for spec-list strings. Owner confirmation requested.
-2. **"View Attribute" button behavior (D10)** — options: (a) temporarily install the
-   reference plugin in a sandbox to observe behavior (requires owner approval per Safety
-   rules), (b) infer from WooCommerce.com docs, (c) owner specifies. The architecture
-   keeps the behavior pluggable regardless.
-3. **Native table visibility** — when GPA tables render, should the native
-   `shop_attributes` table be hidden (setting) or left visible?
+1. **ASCII comma as separator** — **DEFERRED (D20).** Owner may decide later.
+2. **"View Attribute" button behavior (D18)** — to be investigated in Phase 2; do not
+   install the reference plugin on the production site.
+3. **Native table visibility (D17)** — default visible + optional hide setting; final UX
+   confirmation pending Phase 2.
 
 ## 7. Risks & open items
 
-- Over-splitting spec-list values → mitigated by C1 override.
-- Admin memory on 326-product catalog → batched/raw queries + pagination (a
+- Over-splitting spec-list values → **deferred (D20)**; if C is enabled, mitigated by a
+  per-attribute override.
+- Admin memory on 334-product catalog → batched/raw queries + pagination (a
   `wc_get_product()` loop over all products caused a memory fatal during auditing).
-- Stale `product_type` term counts and 12 simple-typed products with variation flags →
-  pre-existing data quality; GPA tolerates, does not fix.
-- `persian-woocommerce` interaction → verify in Phase 2 before finalizing render hooks.
+- Stale `product_type` term counts, broken `tax_query`, and 12 simple-typed products with
+  variation flags → pre-existing data quality; GPA tolerates, does not fix (D21).
+- `persian-woocommerce` interaction → verify in Phase 2 before finalizing render hooks (D19).
 
 ## 8. Next step (requires explicit owner authorization)
 

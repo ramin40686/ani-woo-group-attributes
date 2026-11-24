@@ -52,19 +52,21 @@ value-selection UI must therefore handle **both** attribute kinds and the delimi
 anomaly (294 comma-joined custom values — see
 `woocommerce-attribute-technical-analysis.md` §2).
 
-## 5. "View Attribute" shop-page button (D10)
+## 5. "View Attribute" shop-page button (D18)
 
 `[REFERENCE DOC]` The PDF states the setting enables a "View Attribute" button on the shop
 page. **The exact behavior (modal, link to product, anchor scroll, or other) is not
 specified in the available documentation or screenshots** — the screenshots cover admin
 screens only. `[NOT VERIFIED]`
 
-Per decision D10, the behavior will be **replicated from the reference plugin** and
-determined during Phase 2 (options: (a) install the reference plugin temporarily in a
-sandbox for behavioral observation — requires owner approval per Safety rules; (b) infer
-from the WooCommerce.com documentation; (c) owner specifies the desired behavior).
-The Phase 2 architecture must keep the button's behavior **pluggable** (a single render
-function + setting) so the final choice is a small change.
+**Owner decision D18 (Phase 1.1):** do NOT invent the behavior. Keep the feature
+architecturally isolated and configurable (a single pluggable render function + setting) so
+the final choice is a small change. During Phase 2, investigate the reference behavior
+sufficiently to make an informed implementation decision. **Do NOT install the reference
+plugin on the production Anishop site**; any sandbox installation requires separate explicit
+owner approval. Options for Phase 2: (a) sandbox install for behavioral observation
+(requires owner approval), (b) infer from the WooCommerce.com documentation, (c) owner
+specifies the desired behavior.
 
 ## 6. What the reference does NOT define (gaps to decide in Phase 2)
 

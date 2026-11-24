@@ -187,8 +187,17 @@ touched.
 - **Base branch:** `phase-1-1-1-tax-query-verification` (per task context; `main` is the
   ultimate integration target per project rules)
 - **Base commit:** `05ec502`
-- **Final commit hash:** {FILLED AFTER COMMIT}
-- **Remote push status:** {FILLED AFTER PUSH}
+- **Work commit SHA:** `12f58ccd599cba5769ab05b12962c9022442f854`
+  (`docs: Phase 2A architecture specification + completion report`) — the commit
+  containing all substantive changes.
+- **Remote push status:** pushed to `origin/phase-2a-architecture-specification` and
+  verified — `git ls-remote origin phase-2a-architecture-specification` →
+  `12f58ccd599cba5769ab05b12962c9022442f854` (matches the work commit).
+- **Working-tree status:** clean (verified after commit).
+- **`main`:** unchanged (no merge performed).
+
+> A follow-up metadata commit records this Git state. The work commit SHA above is the
+> commit containing all substantive changes; the metadata commit is documentation-only.
 
 ## 16. Phase / Task Status
 Phase 2A (architecture specification) **complete** — documentation delivered and ready for

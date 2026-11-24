@@ -45,8 +45,8 @@ placement) is what must match.
 
 ## 4. Live-data fit (Anishop)
 
-`[LIVE-VERIFIED 2026-11-24]` The reference's "select existing attribute values" workflow
-fits Anishop's data well: 326 products carry attributes; 1521 custom + 4125 taxonomy
+`[LIVE-VERIFIED 2026-11-24, re-verified 2026-11-24 Phase 1.1.1]` The reference's "select existing attribute values" workflow
+fits Anishop's data well: 328 products carry attributes; 1521 custom + 4125 taxonomy
 attribute entries; 399 distinct custom attribute names; 507 distinct `pa_*` keys. The
 value-selection UI must therefore handle **both** attribute kinds and the delimiter
 anomaly (294 comma-joined custom values — see

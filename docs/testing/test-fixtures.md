@@ -86,10 +86,11 @@ restoring the originals.
 - 17028's two attributes are both variation-linked taxonomy attributes. Custom-attribute
   testing on the variable fixture requires adding `GPA TEST — ` custom attributes.
 - 13143 has no variation children (it is simple). Variable-without-variations testing can
-  use any of the 289 published variable-typed products that lack children (do not modify
+  use any of the 290 published variable-typed products that lack children (do not modify
   them — use a duplicate).
-- `tax_query` on `product_type` is broken on this site (stale term counts) — use the API /
-  `get_the_terms` for product-type detection (see R-L11).
+- `tax_query` on `product_type` works correctly with `field => 'slug'` (the Phase 1.1
+  "broken tax_query" claim was a query-construction error — see R-L11 / Phase 1.1.1 report).
+  Prefer the API / `get_the_terms` for per-product type detection.
 - Restoring meta via the WP meta API double-serializes `_product_attributes` (a WC hook
   re-serializes it). Use raw DB writes (`$wpdb`) for byte-exact restoration.
 

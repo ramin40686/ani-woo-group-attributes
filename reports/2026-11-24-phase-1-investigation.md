@@ -19,10 +19,11 @@ ready for Phase 2 design and owner approval.
    normalization is DEFERRED** — GPA must respect stored values as-is and must not
    silently split them with an unapproved heuristic.
 2. **Product type is a taxonomy in WC 11.3.1:** `_product_type` meta does not exist on
-   this site (0 rows); type comes from the `product_type` taxonomy (292 variable, 42
-   simple — corrected in Phase 1.1). GPA must use the API/`get_the_terms`, never the meta
-   and never `tax_query` (broken on this site due to stale term counts).
-3. **"Variable-typed without variations" is the norm:** 292 variable-typed products, but
+   this site (0 rows); type comes from the `product_type` taxonomy (293 variable, 43
+   simple — re-verified Phase 1.1.1). GPA must use the API/`get_the_terms`, never the meta.
+   `tax_query` on `product_type` works correctly with `field => 'slug'` (the Phase 1.1
+   "broken tax_query" claim was a query-construction error — see Phase 1.1.1 report).
+3. **"Variable-typed without variations" is the norm:** 293 variable-typed products, but
    only 3 have actual variation children (33 variation posts). GPA must not assume
    variations exist; the parent product is the primary attribute source (D15).
 4. **Presentation-layer integration is the proven house pattern:** the existing
@@ -52,7 +53,7 @@ ready for Phase 2 design and owner approval.
 
 | Evidence | Provenance |
 |----------|-----------|
-| Attribute census (334 products, 326 with attributes, 1521 custom / 4125 taxonomy entries, 408 `is_variation=1`, 5555 `is_visible=1`, 399 custom names, 507 `pa_*` keys) | `[LIVE-VERIFIED 2026-11-24]` read-only WP-CLI audits |
+| Attribute census (336 products, 328 with attributes, 1521 custom / 4125 taxonomy entries, 408 `is_variation=1`, 5555 `is_visible=1`, 399 custom names, 507 `pa_*` keys) | `[LIVE-VERIFIED 2026-11-24, re-verified 2026-11-24 Phase 1.1.1]` read-only WP-CLI audits |
 | Delimiter counts (0 pipe / 259 Persian comma / 41 ASCII comma / 294 multi-value) | `[LIVE-VERIFIED 2026-11-24]` corrected audit (literal U+060C detection) |
 | Product type (293 variable / 43 simple; 0 `_product_type` rows; 33 variations under 3 parents; cross-tab 287/6/12/0) | `[LIVE-VERIFIED 2026-11-24]` read-only audits |
 | Frontend unsplit rendering (product 4328, `نوع کاربری` → `رسمی، روزمره، ورزشی`) | `[CDP/HEADLESS EVIDENCE — NOT REAL-MOBILE VERIFIED]` curl-fetched HTML |
@@ -110,10 +111,12 @@ Full rationale, rejected alternatives, and risks:
 
 - Over-splitting spec-list values → **deferred (D20)**; if C is enabled, mitigated by a
   per-attribute override.
-- Admin memory on 334-product catalog → batched/raw queries + pagination (a
+- Admin memory on 336-product catalog → batched/raw queries + pagination (a
   `wc_get_product()` loop over all products caused a memory fatal during auditing).
-- Stale `product_type` term counts, broken `tax_query`, and 12 simple-typed products with
-  variation flags → pre-existing data quality; GPA tolerates, does not fix (D21).
+- 12 simple-typed products with variation flags and 6 variable-typed products without
+  variation attributes → pre-existing data quality; GPA tolerates, does not fix (D21).
+  (The Phase 1.1 "stale `product_type` term counts / broken `tax_query`" anomaly was
+  **disproven** in Phase 1.1.1 — see that report.)
 - `persian-woocommerce` interaction → verify in Phase 2 before finalizing render hooks (D19).
 
 ## 8. Next step (requires explicit owner authorization)

@@ -41,17 +41,19 @@ values or part of a single value. Until then, GPA renders stored values as-is.
 WC 11.3.1 stores product type in the `product_type` taxonomy; `_product_type` meta does
 not exist on this site (0 rows). GPA must use `$product->get_type()` / the taxonomy.
 
-### R-L4 — "Variable-typed without variations" is the norm `[LIVE-VERIFIED 2026-11-24]`
-292 products are variable-typed (all statuses; 289 published), but only **3** have actual
+### R-L4 — "Variable-typed without variations" is the norm `[LIVE-VERIFIED 2026-11-24, re-verified 2026-11-24 Phase 1.1.1]`
+293 products are variable-typed (all statuses; 290 published), but only **3** have actual
 `product_variation` children (33 variation posts total). 287 variable-typed products have
 `is_variation=1` attributes with no variations. GPA must **not** assume variations exist;
 variation-linked attribute semantics apply only to `get_variation_attributes()` output.
 The parent product is the primary attribute source (D15).
 
-### R-L5 — Data anomalies to tolerate, not fix `[LIVE-VERIFIED 2026-11-24]`
-- Stale `product_type` term counts (`variable` term `count=0` but 293 members).
+### R-L5 — Data anomalies to tolerate, not fix `[LIVE-VERIFIED 2026-11-24, re-verified 2026-11-24 Phase 1.1.1]`
 - 12 simple-typed products carry `is_variation=1` attributes.
 - 6 variable-typed products have no variation attribute.
+- (The Phase 1.1 "stale `product_type` term counts" anomaly was re-verified in Phase 1.1.1
+  and **does not exist**: the `variable` term reports `count=290` and `simple` reports
+  `count=36`, both accurate for the published population.)
 GPA must degrade gracefully (never crash, never mis-render) on all of these. Out of scope
 to fix (pre-existing data quality).
 
@@ -74,17 +76,21 @@ inline-variations module.
 All frontend markup RTL-first; Vazirmatn; accent `#2872FA`; radii 2/4px; flat. Admin UI
 bilingual (English source + Persian `.mo`, text domain `anishop`).
 
-### R-L10 — Performance ceiling `[LIVE-VERIFIED 2026-11-24]`
-326 products × up to ~15 attributes. A `wc_get_product()` loop over all products caused a
+### R-L10 — Performance ceiling `[LIVE-VERIFIED 2026-11-24, re-verified 2026-11-24 Phase 1.1.1]`
+328 products × up to ~15 attributes. A `wc_get_product()` loop over all products caused a
 memory fatal during auditing — GPA's admin screens (group list, product load) must use
 batched/raw queries and pagination, not per-product object loops.
 
-### R-L11 — `tax_query` on `product_type` is broken on this site `[LIVE-VERIFIED 2026-11-24, Phase 1.1]`
-The `product_type` term counts are stale (`variable` reports `count=0` while holding 292
-products). Because `WP_Query` resolves tax_query terms via `get_terms( hide_empty=true )`,
-a `tax_query` for `product_type => variable` returns **0 rows**. GPA must detect product
-type via the API (`$product->get_type()` / `is_type( 'variable' )`) or
-`get_the_terms( $id, 'product_type' )` — **never** via `tax_query` or `term->count`.
+### R-L11 — `tax_query` on `product_type` requires `field => 'slug'` `[LIVE-VERIFIED 2026-11-24, re-verified 2026-11-24 Phase 1.1.1]`
+The Phase 1.1 claim that `tax_query` on `product_type` is "broken" (stale term counts,
+`get_terms( hide_empty=true )` omitting the `variable` term) was **incorrect**. The actual
+cause of the "0 rows" observation was a **query-construction error**: passing
+`terms => 'variable'` without `field` defaults to `field => 'term_id'`, and
+`wp_parse_id_list()` converts the slug to `0`, which `array_filter()` then drops, producing
+a `0 = 1` clause. With `field => 'slug'`, the identical query returns all **293** variable
+products. GPA should detect product type via the API (`$product->get_type()` /
+`is_type( 'variable' )`) or `get_the_terms( $id, 'product_type' )`; if a `tax_query` is
+used, it must specify `field => 'slug'`.
 
 ## 3. Non-goals (confirmed)
 
@@ -92,8 +98,10 @@ type via the API (`$product->get_type()` / `is_type( 'variable' )`) or
 - No new plugins, no JS frameworks, no page builders.
 - No modification of Blocksy core, WC core, or existing child-theme modules.
 - **No delimiter normalization / data migration of native attributes** (D20 — deferred; S2 rejected).
-- **No fix of pre-existing data anomalies** (R-L5, D21) — including stale `product_type`
-  term counts and the broken `tax_query` (R-L11). GPA tolerates them.
+- **No fix of pre-existing data anomalies** (R-L5, D21) — including the `is_variation=1`
+  flags on simple-typed products and variable-typed products without variation attributes.
+  GPA tolerates them. (The Phase 1.1 "stale `product_type` term counts / broken `tax_query`"
+  anomaly was **disproven** in Phase 1.1.1 — see R-L5/R-L11.)
 - **No production catalog cleanup** (D21).
 
 ## 4. Open product questions (for owner / Phase 2)

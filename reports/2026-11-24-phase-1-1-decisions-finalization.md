@@ -97,6 +97,18 @@ Recorded in `.clinerules/decisions.md` (D14–D23) and reflected across the docs
 **Created:** `docs/testing/test-fixtures.md` (registry), `reports/2026-11-24-phase-1-1-decisions-finalization.md` (this report).
 **Modified (config):** `.gitignore` (added `backups/`).
 
+> **SUPERSEDED (Phase 1.1.1, 2026-11-24):** Two items recorded above were later **disproven**
+> by read-only re-verification in Phase 1.1.1 (see
+> `reports/2026-11-24-phase-1-1-1-tax-query-verification.md`):
+> 1. The product-type count "correction" (293/43 → 292/42, 334 total) was itself in error —
+>    it had silently excluded the two designated GPA test fixtures (17028 variable, 13143
+>    simple). The verified all-status counts are **293 variable / 43 simple / 336 total**
+>    (290 / 36 / 326 published). The original Phase 1 figures were correct.
+> 2. The "broken `tax_query` on `product_type` (stale term counts)" finding was a
+>    **query-construction error**, not a site defect. `tax_query` works correctly with
+>    `field => 'slug'`; the term counts are not stale.
+> The research docs have been corrected accordingly; this historical record is preserved.
+
 ## G. Remaining Questions
 
 Genuinely unresolved (for the owner / Phase 2):

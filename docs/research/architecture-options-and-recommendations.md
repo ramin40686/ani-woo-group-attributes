@@ -94,10 +94,10 @@ selects values + sorts groups → save handler writes the two product meta keys 
 | Over-splitting spec-list values (if C is ever enabled) | Per-attribute single-value override; default delimiters configurable in settings. **Deferred (D20) — not in current scope.** |
 | `persian-woocommerce` filters native output | B1 keeps GPA output independent; verify in Phase 2 (D19). |
 | N+1 term queries on product pages | Use the product object's cached attributes; batch term fetches per taxonomy. |
-| Admin memory (334 products) | Raw/batched queries + pagination in group list; no per-product `wc_get_product()` loops. |
+| Admin memory (336 products) | Raw/batched queries + pagination in group list; no per-product `wc_get_product()` loops. |
 | Stale groups (attribute removed) | Renderer skips missing attributes gracefully; admin shows a warning. |
 | Variation-linked attributes | Never alter `is_variation` semantics; GPA selection is presentation-only (D9, D15). |
-| Broken `tax_query` on `product_type` (stale term counts) | Use the API / `get_the_terms` for product-type detection, never `tax_query`/`term->count`. |
+| `tax_query` on `product_type` without `field` | Defaults to `term_id`; slug strings coerce to `0` and are dropped. Always use `field => 'slug'` (or prefer the API / `get_the_terms` for per-product detection). |
 
 ## 7. What Phase 2 must finalize
 

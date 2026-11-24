@@ -27,8 +27,8 @@
 
 - Every product's attributes are stored in the **`_product_attributes`** post meta as a
   serialized associative array keyed by attribute name (`pa_{slug}` for taxonomy,
-  URL-encoded raw name for custom). `[LIVE-VERIFIED 2026-11-24]` **326 of 334 products**
-  carry `_product_attributes`.
+  URL-encoded raw name for custom). `[LIVE-VERIFIED 2026-11-24, re-verified 2026-11-24
+  Phase 1.1.1]` **328 of 336 products** carry `_product_attributes`.
 - Each entry: `name`, `value`, `position`, `is_visible`, `is_variation`, `is_taxonomy`.
   `[WC 11.3.1 SOURCE]` `includes/data-stores/class-wc-product-data-store-cpt.php`
   (`read_attributes()` / `update_attributes()`).
@@ -41,8 +41,8 @@
 
 | Metric | Count |
 |--------|-------|
-| Total product posts | 334 |
-| Products with `_product_attributes` | 326 |
+| Total product posts | 336 |
+| Products with `_product_attributes` | 328 |
 | Attribute entries — taxonomy (`is_taxonomy=1`) | 4125 |
 | Attribute entries — custom (`is_taxonomy=0`) | 1521 |
 | Entries with `is_variation=1` | 408 |
@@ -132,15 +132,21 @@ Product type distribution via the `product_type` taxonomy:
 
 | Type | Products (all statuses) | Products (published only) |
 |------|-------------------------|---------------------------|
-| variable | **292** | 289 |
-| simple | 42 | 35 |
+| variable | **293** | 290 |
+| simple | 43 | 36 |
 | external / grouped | 0 | 0 |
-| **Total product posts** | **334** | **324** |
+| **Total product posts** | **336** | **326** |
 
-> **Corrected 2026-11-24 (Phase 1.1):** the original Phase 1 figures (293 variable /
-> 43 simple = 336) were each off by one. A targeted re-audit confirms **334 total product
-> posts = 292 variable + 42 simple** (all statuses); 324 published (289 variable + 35
-> simple); 10 non-published (2 private, 8 draft). No product carries more than one
+> **Re-verified 2026-11-24 (Phase 1.1.1):** the Phase 1.1 "correction" (292 variable /
+> 42 simple = 334; 324 published) was itself in error — it had silently excluded the two
+> designated GPA test fixtures (17028 variable, 13143 simple; both published, both carrying
+> `_product_attributes`). Four independent read-only methods (direct SQL on
+> `term_relationships`, `WP_Query` `tax_query` with `field=slug`, a full
+> `get_the_terms()` loop over all 336 product IDs, and `get_posts` + status breakdown)
+> all agree: **336 total product posts = 293 variable + 43 simple** (all statuses);
+> **326 published = 290 variable + 36 simple**; 10 non-published (2 private, 8 draft).
+> The original Phase 1 figures (293/43/336) were correct and are restored. No product
+> carries more than one `product_type` term; no non-product object carries a
 > `product_type` term.
 
 Reconciliation with variation data `[LIVE-VERIFIED 2026-11-24]`:
@@ -154,15 +160,21 @@ Reconciliation with variation data `[LIVE-VERIFIED 2026-11-24]`:
 
 **Data-quality observations (pre-existing, out of scope for GPA, documented for awareness):**
 
-1. The `product_type` term counts are stale (the `variable` term reports `count=0` while
-   actually containing 292 products; `simple` reports `count=35` vs 42 actual).
-2. **`WP_Query`/`tax_query` on `product_type` is BROKEN on this site** `[LIVE-VERIFIED
-   2026-11-24, Phase 1.1]`: because the term counts are stale, `get_terms( hide_empty=true )`
-   (which `WP_Query` uses internally to resolve tax_query terms) omits the `variable` term,
-   so a `tax_query` for `product_type => variable` returns **0 rows** even though 292
-   products have that term. GPA must detect product type via the **API**
-   (`$product->get_type()` / `is_type( 'variable' )`) or `get_the_terms( $id, 'product_type' )`
-   — **never** via `tax_query` or `term->count`.
+1. The `product_type` term counts are **NOT stale.** `[LIVE-VERIFIED 2026-11-24, Phase 1.1.1]`
+   The `variable` term reports `count=290` and `simple` reports `count=36` — both accurate
+   for the **published** population (293 variable / 43 simple including the 10 non-published
+   products). `get_terms( 'product_type', array( 'hide_empty' => true ) )` returns **both**
+   terms. (The Phase 1.1 claim that `variable` reported `count=0` was incorrect.)
+2. **`WP_Query`/`tax_query` on `product_type` is NOT broken on this site.** `[LIVE-VERIFIED
+   2026-11-24, Phase 1.1.1]` The Phase 1.1 "0 rows" observation was a **query-construction
+   error, not a site defect.** When `terms => 'variable'` is passed **without** a `field`,
+   `WP_Tax_Query` defaults to `field => 'term_id'`; `clean_query()` then runs the slug through
+   `wp_parse_id_list()` → `absint( 'variable' )` = `0`, and `transform_query()` drops the
+   falsy `0` via `array_filter()`, leaving **empty terms** and generating a `0 = 1` SQL clause.
+   With `field => 'slug'` (or `name`), the identical query returns all **293** variable
+   products. `WP_Query` resolves tax_query terms via `WP_Term_Query` with `get => 'all'`
+   (which does **not** apply `hide_empty`), so term counts are irrelevant to this path.
+   Full source trace: Phase 1.1.1 report §3.
 3. ~290 products are typed `variable` but have **no variation children** — the store's
    catalog is overwhelmingly "variable-typed without variations".
 4. 12 simple-typed products carry `is_variation=1` attribute flags.
@@ -171,8 +183,9 @@ Reconciliation with variation data `[LIVE-VERIFIED 2026-11-24]`:
 
 - GPA must detect product type via the **API** (`$product->get_type()` /
   `is_type( 'variable' )`) or `get_the_terms( $id, 'product_type' )` — **never** via
-  `_product_type` meta (absent in this WC version) and **never** via `tax_query` /
-  `term->count` (broken on this site — see data-quality observation 2).
+  `_product_type` meta (absent in this WC version). `WP_Query`/`tax_query` on
+  `product_type` works correctly when `field => 'slug'` is supplied (see data-quality
+  observation 2), but for per-product type detection the API is simpler and more direct.
 - GPA must not assume "variable-typed ⇒ has variations". Variation-linked semantics apply
   only to attributes returned by `$product->get_variation_attributes()` (287 products have
   such attributes; only 3 products have live variation rows).
@@ -223,7 +236,7 @@ table (product 4328, fetched via curl):
   `manage_options` for settings); all output escaped; inputs sanitized
   (`sanitize_text_field`, `wp_unslash`, `absint`). CPT/taxonomy registration must set
   `show_ui`/capabilities explicitly.
-- **Performance:** 326 products × up to ~15 attributes each; group rendering must avoid
+- **Performance:** 328 products × up to ~15 attributes each; group rendering must avoid
   N+1 term queries (batch `wc_get_product_terms` per taxonomy or use the product object's
   cached attributes). Admin group-list screens need pagination. Assets load only on
   product pages / admin screens that need them (established child-theme convention).
@@ -238,8 +251,9 @@ table (product 4328, fetched via curl):
 2. **`persian-woocommerce` interaction** — whether it filters `woocommerce_product_attribute`
    output or the attributes table; verify in Phase 2 before finalizing the render hook.
    `[NOT VERIFIED]` (required by D19).
-3. **Stale `product_type` term counts** — pre-existing data issue; GPA must not depend on
-   `term->count` or `tax_query` (use the API or `get_the_terms`). No fix in scope (D21).
-4. **`tax_query` on `product_type` is broken** on this site (stale term counts) — GPA must
-   use the API / `get_the_terms` for product-type detection (see §3, observation 2).
+3. **Product-type detection** — use the API (`$product->get_type()` / `is_type()`) or
+   `get_the_terms( $id, 'product_type' )` for per-product detection. If using `tax_query`,
+   always specify `field => 'slug'` (the Phase 1.1 "broken tax_query / stale term counts"
+   claim was a query-construction error — see §3, observation 2). Do not rely on
+   `term->count` for product-type detection.
 

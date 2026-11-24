@@ -8,9 +8,9 @@
 |------|-------|
 | Base commit | `67f70ad596d8187c9e4af9bcfbbf19636a574cea` (tip of `phase-1-investigation`) |
 | Branch | `phase-1-1-decisions-finalization` |
-| Final commit SHA | _(filled at commit time)_ |
-| Remote verification | _(filled after push)_ |
-| Working-tree status | clean (after commit) |
+| Final commit SHA | `32b323d6e949cac98e9e1c4b86491aedd23ab836` (`docs: finalize phase 1 decisions and testing policy`) |
+| Remote verification | `git ls-remote origin phase-1-1-decisions-finalization` → `32b323d6e949cac98e9e1c4b86491aedd23ab836` — **matches local HEAD** |
+| Working-tree status | clean (verified after commit) |
 | `main` | unchanged at `2b4b0902fbaee70519df20f1bcc63723e1d591ba` (no merge performed) |
 
 ## B. Decisions Finalized

@@ -300,9 +300,15 @@ documentation-only; no code):
 
 ## 12. Git State
 
-- **Branch:** `phase-1-1-1-tax-query-verification` (created from `7359c20`).
-- **Commit SHA:** _(filled after commit)_
-- **Push status:** _(filled after push)_
-- **Working tree:** _(filled after verification)_
-- **`main`:** unchanged (still at `2b4b090`).
-- **Phase 2:** not started.
+| Item | Value |
+|------|-------|
+| Base commit | `7359c20` (tip of `phase-1-1-decisions-finalization`) |
+| Branch | `phase-1-1-1-tax-query-verification` |
+| Work commit SHA | `7662fe81df721df6bc09df93b2aa8805b65eb082` (`docs: Phase 1.1.1 — verify product_type tax_query root cause + correct product counts`) |
+| Remote verification | `git ls-remote origin phase-1-1-1-tax-query-verification` → `7662fe81df721df6bc09df93b2aa8805b65eb082` — **matches the pushed work commit** |
+| Working-tree status | clean (verified after commit) |
+| `main` | unchanged at `2b4b090` (no merge performed) |
+| Phase 2 | not started |
+
+> A follow-up metadata commit records this Git state. The work commit SHA above is the
+> commit containing all substantive changes; the metadata commit is documentation-only.

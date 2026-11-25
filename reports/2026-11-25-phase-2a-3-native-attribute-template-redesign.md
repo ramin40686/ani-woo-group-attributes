@@ -449,8 +449,9 @@ task intentionally did **not** modify those files to respect the assigned scope.
 
 ### 18.1 Commits
 
-- **Work commit SHA:** `__WORK_COMMIT_SHA__` — the commit containing all substantive
-  changes (rewritten specification, updated decisions, updated roadmap, and this report).
+- **Work commit SHA:** `80ad6c24b0dc67c4ae57907e2f2f1126e58b58b9` — the commit containing all
+  substantive changes (rewritten specification, updated decisions, updated roadmap, and this
+  report).
 - **Metadata commit SHA:** the follow-up commit that records the work-commit SHA and the
   push/working-tree verification in this section (the branch HEAD after this task).
 

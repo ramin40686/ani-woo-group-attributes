@@ -251,24 +251,25 @@ Only authorized documentation work was performed:
   (`docs: Phase 2A.2 final architecture consistency fixes (safe unserialization,
   empty-group behavior, U11/U12/U13 ratification)`) — the commit containing all
   substantive changes (spec + decisions + 2A.1 addendum).
-- **Metadata commit SHA:** `__METADATA_SHA__`
-  (the commit containing this report; recorded in the follow-up commit.)
+- **Metadata commit SHA:** `744156101f59edc9deb7c0e564c7eacb725b659b`
+  (the commit containing this report.)
 - **`main` (local and remote):** `2b4b0902fbaee70519df20f1bcc63723e1d591ba` —
   **unchanged** (no merge performed).
 
-> A follow-up commit records the metadata commit SHA and push status in this report. The
-> work commit SHA above is the commit containing all substantive changes.
+> The work commit SHA is the commit containing all substantive changes; the metadata commit
+> SHA is the commit containing this report. Both are recorded above.
 
 ## 17. Push and Working-Tree Verification
 - **Remote branch:** `origin/phase-2a-2-final-architecture-consistency` — pushed and
-  verified via `git ls-remote origin`.
-- **Local HEAD == Remote HEAD:** verified (both equal to the final commit on the branch).
+  verified via `git ls-remote origin` (resolves to
+  `744156101f59edc9deb7c0e564c7eacb725b659b`).
+- **Local HEAD == Remote HEAD:** verified at the metadata-commit push — both
+  `744156101f59edc9deb7c0e564c7eacb725b659b`. This follow-up commit (which records the
+  metadata SHA and this push status) is pushed immediately after, keeping local and remote
+  in sync; the final shared HEAD is the follow-up commit.
 - **Working tree:** clean (verified after commit).
 - **`main` unchanged:** local `main` == remote `main` ==
   `2b4b0902fbaee70519df20f1bcc63723e1d591ba`.
-
-> Push status and exact HEAD equality are finalized in the follow-up commit after the push
-> is verified.
 
 ## 18. Phase / Task Status
 Phase 2A.2 (final architecture consistency fixes) **complete** — the corrected

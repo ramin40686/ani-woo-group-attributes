@@ -463,11 +463,15 @@ task intentionally did **not** modify those files to respect the assigned scope.
 
 - **Remote branch:** `origin/phase-2a-3-native-attribute-template-redesign` — pushed and
   verified via `git ls-remote origin`.
-- **Local HEAD == Remote HEAD:** verified after the final push (both resolve to the
-  metadata/follow-up commit).
-- **Working tree:** clean (verified after commit).
+- **Local HEAD == Remote HEAD:** verified after the final push — `git rev-parse HEAD` and
+  `git ls-remote origin phase-2a-3-native-attribute-template-redesign` resolve to the same
+  commit (the branch is fully pushed and in sync). The work commit is
+  `80ad6c24b0dc67c4ae57907e2f2f1126e58b58b9`; the branch HEAD is the follow-up commit that
+  records this verification.
+- **Working tree:** clean (verified after commit — `git status --short` empty).
 - **`main` unchanged:** local and remote `main` both remain at
-  `2b4b0902fbaee70519df20f1bcc63723e1d591ba`.
+  `2b4b0902fbaee70519df20f1bcc63723e1d591ba` (verified via `git rev-parse main` and
+  `git ls-remote origin main`).
 
 ## 19. Changed / Verified / Not Verified / Risks
 

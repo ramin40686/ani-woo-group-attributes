@@ -303,7 +303,7 @@ Only authorized documentation work was performed:
 - **Base branch:** `phase-2a-architecture-specification` (per task context; `main` is the
   ultimate integration target per project rules)
 - **Base commit:** `8a520641021fef0aa77f16234981e034be8e43c5`
-- **Work commit SHA:** `__WORK_COMMIT_SHA__`
+- **Work commit SHA:** `b446a80bb775d2ff9c9e32dd5c88be744de5e071`
   (`docs: Phase 2A.1 architecture specification corrections + completion report`) — the
   commit containing all substantive changes.
 - **Remote push status:** pushed to `origin/phase-2a-1-architecture-corrections` and

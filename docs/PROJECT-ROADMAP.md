@@ -2,7 +2,7 @@
 
 Advanced WooCommerce Product Group Attributes manager in the free version of the Blocksy WordPress theme
 
-Project status: **Phase 0 + Phase 1 + Phase 1.1 complete — Phase 2 (architecture design) NOT STARTED, awaiting explicit owner authorization**
+Project status: **Phase 0, 0.1, 1, 1.1, 1.1.1, 2A.1, 2A.2 complete — Phase 2A.3 (native-template architecture redesign) IN PROGRESS — Phase 2B and Phase 3 NOT STARTED**
 Project type: WordPress / Blocksy / WooCommerce
 Target website: Anishop
 Target URL: http://anishop.local
@@ -94,6 +94,26 @@ Tasks:
 
 ⸻
 
+### Phase 0.1 – Workflow Standardization
+
+Status: **COMPLETE (2026-11-23)** — branch `chore/project-workflow-standardization`.
+
+Objective: Standardize the project's Git workflow, reporting, and execution rules before
+Phase 1.
+
+Tasks (all completed):
+
+* Establish the mandatory project execution rules (owner authorization, task scope control,
+  branch/Git management, reporting, commit/push, end-of-task stop condition).
+* Standardize the per-phase branch model (`phase-{N}-{slug}`) and the `reports/` +
+  `snapshots/blocksy-child/` repository conventions.
+* Produce the completion report
+  `reports/2026-11-23-phase-0-1-workflow-standardization.md`.
+
+**No implementation. No Phase 1 start.**
+
+⸻
+
 ### Phase 1 – Environment and Architecture Inspection
 
 Status: **COMPLETE (2026-11-24)** — branch `phase-1-investigation`, commit `67f70ad`. Five research docs under `docs/research/` + synthesis report `reports/2026-11-24-phase-1-investigation.md`.
@@ -143,11 +163,47 @@ Tasks (all completed):
 
 ⸻
 
+### Phase 1.1.1 – Tax Query Verification
+
+Status: **COMPLETE (2026-11-24)** — branch `phase-1-1-1-tax-query-verification`.
+
+Objective: Verify the WooCommerce product-type taxonomy query correction (a `product_type`
+taxonomy query using a slug must explicitly specify `field => 'slug'`) against the live
+environment. Documentation/verification only — **no implementation**.
+
+Tasks (all completed):
+
+* Verify the `product_type` taxonomy query behavior (slug vs ID, `field => 'slug'`).
+* Correct the Phase 1.1 documentation where the query was imprecise.
+* Produce the completion report
+  `reports/2026-11-24-phase-1-1-1-tax-query-verification.md`.
+
+**No implementation. No Phase 2 start. No merge into `main`.**
+
+⸻
+
 ### Phase 2 – Architecture Design and Approval
 
-Status: **NOT STARTED — awaiting explicit owner authorization**
+Status: **IN PROGRESS** — sub-phases 2A.1 and 2A.2 complete; 2A.3 in progress; 2B not started.
 
 Objective: Define the final implementation before coding.
+
+Sub-phase status:
+
+* **Phase 2A.1 – Architecture Corrections:** **COMPLETE (2026-11-25)** — branch
+  `phase-2a-1-architecture-corrections`. Corrected the Phase 2A specification (group-reference
+  sequence, aggregation query, matching contract, term validation, Boolean sanitization,
+  save/render revalidation).
+* **Phase 2A.2 – Final Architecture Consistency Fixes:** **COMPLETE (2026-11-25)** — branch
+  `phase-2a-2-final-architecture-consistency`. Strengthened the safe-unserialization
+  contract, reconciled empty-group behavior, and ratified U11/U12/U13 (D24/D25/D26).
+* **Phase 2A.3 – Native Attribute Template Redesign:** **IN PROGRESS** — branch
+  `phase-2a-3-native-attribute-template-redesign`. Redesigns the architecture to the
+  **native-template model** (groups = templates of Global Attribute definitions; Load adds
+  native attribute rows; native rendering). Supersedes the Phase 2A / 2A.1 / 2A.2
+  value-selection architecture.
+* **Phase 2B – Runtime Verification:** **NOT STARTED** — will verify the [2B-VERIFY] items
+  in the Phase 2A.3 specification (§17) before Phase 3.
 
 Deliverables:
 

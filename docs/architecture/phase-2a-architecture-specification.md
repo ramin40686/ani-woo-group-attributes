@@ -8,24 +8,43 @@
 > integration points that Phase 3 (implementation) will build against. It implements
 > **nothing** and does **not** authorize implementation.
 >
-> **Phase 2A.1 correction (2026-11-25):** corrected the `get_post()` group-reference
-> sequence (§3.3), the custom-attribute aggregation query (posts ⋈ postmeta JOIN, §5.2),
-> the group-value ↔ product-attribute matching contract (§5.7, §5.8), taxonomy-scoped term
-> validation (§5.8), strict Boolean sanitization (§9.3), and save/render revalidation
-> (§4.4, §7.2). See `reports/2026-11-25-phase-2a-1-architecture-corrections.md`.
+> **Phase 2A.3 redesign (2026-11-25) — AUTHORITATIVE.** The product concept was clarified
+> by the owner and is materially different from the Phase 2A / 2A.1 / 2A.2 architecture.
+> GPA is a **reusable Global WooCommerce Attribute Template Manager**: a GPA group is a
+> template of **Global Attribute definitions**; loading a group **adds native WooCommerce
+> attribute rows** to the product; the product's **native WooCommerce attribute data is the
+> single source of truth**; and **all** product attributes are rendered through the
+> **standard WooCommerce/Blocksy Additional Information tab**. This redesign **supersedes**
+> the previous value-selection / separate-renderer architecture. The previous contracts
+> (three-tier A/B/C value model, `_ani_gpa_assigned_groups`, `_ani_gpa_selected_values`,
+> custom-attribute aggregation, GPA frontend renderer, native-table suppression, Blocksy
+> custom layer) are **removed from the active architecture** and are recorded as
+> superseded in `.clinerules/decisions.md` and in
+> `reports/2026-11-25-phase-2a-3-native-attribute-template-redesign.md`. The historical
+> Phase 2A / 2A.1 / 2A.2 reports remain accurate records of their time and are **not**
+> rewritten.
 >
-> **Phase 2A.2 correction (2026-11-25):** strengthened the safe-unserialization contract
-> for `_product_attributes` (§5.2 — `allowed_classes => false`; `maybe_unserialize()`
-> alone does **not** restrict object instantiation), reconciled the empty-group behavior
-> (assignment without selected values is administratively valid; no empty frontend
-> tables — §4.2, §4.3, §7.2, §7.3, §7.4), and recorded owner decisions U11 (group status
-> policy, §3.3), U12 (publish-only aggregation, §5.2), and U13 (stale selected-value
-> lifecycle, §4.4). See
-> `reports/2026-11-25-phase-2a-2-final-architecture-consistency.md`.
+> **Superseded correction history (preserved for provenance):**
+> - **Phase 2A.1 correction (2026-11-25):** corrected the `get_post()` group-reference
+>   sequence, the custom-attribute aggregation query, the group-value ↔ product-attribute
+>   matching contract, taxonomy-scoped term validation, strict Boolean sanitization, and
+>   save/render revalidation. See
+>   `reports/2026-11-25-phase-2a-1-architecture-corrections.md`. (Most of these addressed
+>   contracts that no longer exist; the generally-applicable security/integrity principles
+>   are preserved where the new architecture still stores or processes structured data —
+>   see the Phase 2A.3 report, "Phase 2A.2 Corrections — Applicability Assessment".)
+> - **Phase 2A.2 correction (2026-11-25):** strengthened the safe-unserialization contract
+>   for `_product_attributes`, reconciled the empty-group behavior, and recorded owner
+>   decisions U11/U12/U13 (D24/D25/D26). See
+>   `reports/2026-11-25-phase-2a-2-final-architecture-consistency.md`. (Reassessed under
+>   the new architecture in the Phase 2A.3 report.)
 >
-> **Architecture direction:** **A1** (data ownership: CPT + taxonomy + product meta +
-> Theme Mod) + **B1** (Blocksy custom-layer rendering). Axis **C** (delimiter
-> normalization) is **DEFERRED** (D20).
+> **Architecture direction:** **Native-template model** — GPA owns only the group
+> template (CPT + ordered Global Attribute references + a single Theme Mod for
+> presentation style). It **reads** the Global Attribute registry and **writes** product
+> attributes **only** through the native WooCommerce attribute editor/save lifecycle. It
+> performs **no** separate frontend rendering of attributes.
+
 >
 > **Label conventions used throughout this document:**
 >
@@ -39,58 +58,107 @@
 >
 > **Provenance labels** (per `project-rules.md` §Verification):
 > `[LIVE-VERIFIED <date>]` · `[STATIC CODE EVIDENCE]` · `[WC 11.3.1 SOURCE]` ·
-> `[CDP/HEADLESS EVIDENCE — NOT REAL-MOBILE VERIFIED]` · `[NOT VERIFIED]`.
+> `[WP CORE SOURCE]` · `[CDP/HEADLESS EVIDENCE — NOT REAL-MOBILE VERIFIED]` · `[NOT VERIFIED]`.
 
 ---
 
 ## 0. Scope and status of this document
 
-- **In scope (Phase 2A):** the full technical architecture — component responsibilities,
-  file structure, data contracts, hook-by-hook integration, security, performance,
+- **In scope (Phase 2A.3):** the full technical architecture of the **native-template
+  model** — the GPA group/template concept, the revised data model, the group editor, the
+  Product Data → Attributes integration, the Load operation, native attribute editing,
+  ordering, Custom Attribute handling, frontend rendering (native), uniform table styles,
+  WooCommerce/Blocksy integration, admin menu placement, security, performance,
   compatibility, and testing strategy — for owner approval.
-- **Out of scope (Phase 2A):** any production PHP/JS/CSS, any database write, any catalog
-  change, any delimiter normalization (D20), any catalog cleanup (D21).
-- **Intentionally deferred to Phase 2B:** runtime verification of the Blocksy custom-layer
-  hook/registration/position (B1 is a *selected direction*, not yet runtime-verified —
-  D16), and runtime `persian-woocommerce` compatibility testing (D19).
-- **Unresolved (must not be assumed):** the "View Attribute" shop-page button behavior
-  (D18). It is kept architecturally isolated and configurable so the final choice is a
-  small change.
+- **Out of scope (Phase 2A.3):** any production PHP/JS/CSS, any database write, any
+  catalog change, any delimiter normalization (D20), any catalog cleanup (D21), any
+  implementation.
+- **Intentionally deferred to Phase 2B:** runtime verification of the native
+  `woocommerce_add_attribute` row-insertion flow, the "Save attributes" button
+  enable/disable behavior, the admin menu position, the CSS-only table-style mechanism,
+  and `persian-woocommerce` compatibility (D19).
+- **Removed from the active architecture by this redesign:** the three-tier A/B/C value
+  model, `_ani_gpa_assigned_groups`, `_ani_gpa_selected_values`, `_ani_gpa_group_values`
+  (value references), custom-attribute aggregation, the GPA frontend renderer, native-table
+  suppression, the Blocksy custom layer, and the GPA frontend location setting. These are
+  recorded as superseded (see `.clinerules/decisions.md` and the Phase 2A.3 report).
 
-**New evidence gathered for this specification (2026-11-25):** the native
-`shop_attributes` table's exact render chain in Blocksy 2.1.62 + WC 11.3.1, the exact
-attribute-name / option formats returned by `WC_Product::get_attributes()` for both
-attribute kinds (live-verified on fixtures 13143 and 17028), and the clean non-destructive
-mechanism to hide the native table. See §8.2 and the Evidence Appendix (§13).
+**New evidence gathered for this redesign (2026-11-25):** the Global Attribute registry
+APIs and their rename/delete migration behavior, the native product attribute editor
+template and row structure, the native save lifecycle (including the discard-empty-
+attribute behavior), the native "Add global attribute" AJAX mechanism
+(`woocommerce_add_attribute`), the "Save attributes" button enable/disable logic, the
+frontend `shop_attributes` render chain, and the WordPress admin menu ordering mechanism.
+See the Evidence Appendix (§19).
 
 ---
 
-## 1. System overview
+## 1. Product vision and system overview
 
 ### 1.1 What GPA is
 
-GPA lets Anishop store admins organize WooCommerce product attributes into named, sortable
-**groups** (optionally organized into **group categories**), assign those groups to
-products, choose which attribute values each product displays, and render the selected
-attributes on the frontend — all managed from the WordPress admin and rendered inside the
-Blocksy child theme. The target experience matches the official WooCommerce Group
-Attributes plugin (reference: `docs/references/`) **without** any runtime dependency on
-that plugin or on Blocksy Pro.
+GPA is a **reusable Global WooCommerce Attribute Template Manager**. A store admin defines
+named **groups**, where each group is a **template** containing an **ordered list of
+references to existing WooCommerce Global Attribute definitions** (e.g. a "Mobile" group
+containing Processor, Display, Internal Storage, RAM, Battery Capacity, Operating System).
 
-GPA is a **presentation layer** [DECISION D9]: it renders selected attribute values
-**without modifying** native WooCommerce attribute data (`_product_attributes`,
-visibility flags, or variation semantics). Precedent: the existing
-`anishop-inline-variations` module.
+The group defines **which attributes should be added to a product**. It does **not** define
+the product's actual attribute values. When an admin **loads** a group onto a product, GPA
+adds the group's Global Attribute definitions to the product's **native WooCommerce
+attribute list** — equivalent to adding those attributes through WooCommerce's normal
+native attribute workflow. The admin then uses the **native** WooCommerce attribute
+controls to select terms, add values, remove attributes, reorder, and edit.
 
-### 1.2 Architecture direction (A1 + B1; C deferred)
+GPA is **not** a separate product-attribute grouping, value-selection, or frontend
+rendering system. The product's **native WooCommerce attribute data is the single source
+of truth** for the product's attributes, and **all** product attributes (Global loaded via
+GPA, Global added manually, Custom added manually) are displayed through the **standard
+WooCommerce/Blocksy Additional Information tab**. [DECISION D28] [DECISION D29] [DECISION
+D30] [DECISION D33]
+
+### 1.2 Architecture direction (native-template model)
 
 | Axis | Choice | Status |
 |------|--------|--------|
-| **A — Data ownership** | **A1**: CPT `ani_gpa_group` + taxonomy `ani_gpa_group_cat` for group definitions; product meta `_ani_gpa_assigned_groups` + `_ani_gpa_selected_values` for per-product state; Theme Mod for global settings. | [DECISION D22] selected; matches the decided data model in `project-rules.md`. |
-| **B — Frontend rendering** | **B1**: Blocksy custom layer (`blocksy:woocommerce:product:custom:layer`) at a configurable position; GPA renders its own grouped tables. | [DECISION D16] selected; **NOT yet runtime-verified** → [2B-VERIFY]. |
-| **C — Value parsing** | **DEFERRED.** No comma/Persian-comma splitting, no `_product_attributes` migration, no value rewriting. GPA respects actual stored values. | [DECISION D20] deferred. |
+| **Data ownership** | GPA owns only the group template: CPT `ani_gpa_group` + ordered Global Attribute references (post meta) + a single Theme Mod for presentation style. Product attributes are owned **exclusively** by WooCommerce. | [DECISION D28] [DECISION D30] |
+| **Attribute insertion** | Loading a group inserts **native** WooCommerce attribute rows via the native `woocommerce_add_attribute` mechanism; the native save lifecycle persists them. No parallel product-attribute data structure. | [DECISION D29] |
+| **Frontend rendering** | **Native only.** All attributes render through the standard WooCommerce/Blocksy Additional Information tab. No separate GPA renderer, tables, group headings, or Blocksy custom layer. | [DECISION D33] |
+| **Presentation** | Three uniform table styles (`default` / `minimal` / `boxed`) applied to **all** product attributes via a lightweight CSS-only mechanism. | [DECISION D34] |
 
-### 1.3 Module file structure
+Axis **C** (delimiter normalization) remains **DEFERRED** (D20). The previous A1 + B1
+direction (D22) is **superseded** by this native-template model.
+
+### 1.3 Architecture diagram
+
+```
+GPA Group Templates (CPT ani_gpa_group)
+        |
+        | contain ordered references to
+        v
+Global WooCommerce Attribute Definitions (wc_get_attribute_taxonomies / pa_{slug})
+        |
+        | Load (native woocommerce_add_attribute row insertion)
+        v
+WooCommerce Native Product Attribute Collection (Product Data -> Attributes)
+        |
+        | Native editing and saving (WC_Meta_Box_Product_Data::save / prepare_attributes)
+        v
+WooCommerce Product Attribute Data (_product_attributes — single source of truth)
+        |
+        | Native Additional Information output (wc_display_product_attributes)
+        v
+WooCommerce / Blocksy Frontend Presentation (Additional Information tab)
+        |
+        +---- default   (native appearance)
+        +---- minimal   (uniform CSS style)
+        +---- boxed     (uniform CSS style)
+
+Manually added Global Attributes and Custom Attributes enter the SAME native product
+attribute collection (Product Data -> Attributes) and follow the SAME native save and
+render path. There is NO separate frontend rendering branch for GPA-loaded attributes.
+```
+
+### 1.4 Module file structure
 
 All new code is isolated in the child theme (project rules). Target layout:
 
@@ -98,20 +166,17 @@ All new code is isolated in the child theme (project rules). Target layout:
 wp-content/themes/blocksy-child/
   inc/ani-group-product-attributes/
     config.php      — Theme Mod schema + single sanitizer (anishop_gpa_settings);
-                      value-reference helpers; constants (meta keys, layer ID, caps).
-    bootstrap.php   — CPT ani_gpa_group + taxonomy ani_gpa_group_cat registration;
-                      asset registration; hook wiring (the module entry point).
-    admin.php       — Appearance → Anishop tabs (anishop_admin_tabs filter);
-                      group list/edit UI; group-category UI; settings form + save.
-    product.php     — product-edit GPA section (load groups / select values / sort);
-                      product-meta save handler.
-    render.php      — frontend grouped-table renderer (Blocksy custom layer, B1);
-                      value resolution; native-table hide filter; "View Attribute"
-                      pluggable render function (D18).
-  assets/js/ani-group-product-attributes.js        — frontend (likely none; see §7.5).
-  assets/js/ani-group-product-attributes-admin.js  — drag-and-drop (vanilla IIFE).
-  assets/css/ani-group-product-attributes.css      — frontend tables (RTL-first).
+                      constants (CPT, meta key, caps, style keys).
+    bootstrap.php   — CPT ani_gpa_group registration; admin menu; asset registration;
+                      hook wiring (the module entry point).
+    admin.php       — group list/edit UI (Global Attribute selection + ordering);
+                      group save handler.
+    product.php     — Product Data -> Attributes GPA section (UI-only toggle, group
+                      select + Load); admin JS wiring.
+    styles.php      — uniform table-style CSS enqueue (default/minimal/boxed).
+  assets/js/ani-group-product-attributes-admin.js  — group editor + product Load (vanilla IIFE).
   assets/css/ani-group-product-attributes-admin.css
+  assets/css/ani-group-product-attributes-styles.css — uniform table styles (RTL-first).
   languages/        — .pot + fa_IR.po/.mo (text domain `anishop`).
 ```
 
@@ -122,46 +187,87 @@ wp-content/themes/blocksy-child/
   text domain `anishop`.
 - **No** new plugins, **no** JS frameworks, **no** page builders, **no** Blocksy Pro
   runtime dependency. [REQ]
+- **No frontend renderer file** — the previous `render.php` (grouped-table renderer) is
+  **removed**. Frontend output is entirely native. [DECISION D33]
 
-### 1.4 Data flow
+### 1.5 Data flow
+
+**Admin (group editor):**
+
+```
+Group edit screen (CPT ani_gpa_group)
+  └─ admin selects existing Global Attributes (from wc_get_attribute_taxonomies)
+  └─ admin orders them (drag-and-drop)
+  └─ save handler (nonce + edit_post cap) writes _ani_gpa_group_attributes
+       (ordered array of pa_{slug} strings)
+```
+
+**Admin (product edit — Load):**
+
+```
+Product Data -> Attributes tab
+  └─ GPA section (woocommerce_product_options_attributes hook):
+       UI-only "Create group for this product" toggle
+       group <select> + Load button
+  └─ Load: GPA admin JS fetches the group's ordered pa_{slug} list (REST, nonce)
+       and, for each attribute, calls the NATIVE woocommerce_add_attribute AJAX action
+       (reusing WC's add-attribute nonce) to obtain the native row HTML, appends it to
+       #product_attributes .product_attributes, re-indexes, and refreshes the save button.
+  └─ admin selects terms / adds values using NATIVE controls
+  └─ admin saves via NATIVE controls (Save attributes / product save)
+       -> WC_Meta_Box_Product_Data::save -> prepare_attributes -> _product_attributes
+```
 
 **Frontend (single product page):**
 
 ```
-Blocksy single-product layout
-  └─ custom layer `ani_gpa` (inserted at the configured position)   [B1]
-       └─ render.php:
-            1. gate: feature enabled? single product? product exists?
-            2. read _ani_gpa_assigned_groups (ordered group IDs)
-            3. if empty → render nothing (native table stays visible)   [D17]
-            4. for each group ID (in order):
-                 - load group (CPT); if missing → skip (stale)
-                 - read _ani_gpa_selected_values[group_id] (ordered value refs)
-                 - if none → skip group
-                 - resolve each value ref → display text
-                     (taxonomy: term ID → term name; custom: raw string)
-                 - render one grouped table (group name + value rows)
-            5. (optional) hide native table via filter   [D17, only if setting on
-               AND GPA produced renderable content]
+Blocksy single-product tabs (woocommerce_product_tabs)
+  └─ "Additional information" tab (native WooCommerce tab)
+       └─ woocommerce_product_additional_information()
+            └─ wc_display_product_attributes()
+                 └─ <table class="woocommerce-product-attributes shop_attributes">
+                      (all attributes: GPA-loaded, manual Global, Custom)
+  └─ uniform table style (default/minimal/boxed) applied via CSS only
 ```
 
-**Admin (product edit):**
+---
 
-```
-"Manage Attribute Groups" + Load  /  "Load Group Categories"
-  └─ REST endpoint (nonce-protected) returns the group(s)' value refs
-       for the current product (both attribute kinds)
-  └─ admin selects which values display + drag-and-drop group sorting
-  └─ save handler (nonce + edit_product cap + autosave/revision guards)
-       writes _ani_gpa_assigned_groups + _ani_gpa_selected_values
-```
+## 2. GPA group/template concept
 
-## 2. Group CPT and taxonomy design
+### 2.1 A group is a template of Global Attribute definitions
 
-### 2.1 CPT `ani_gpa_group`
+A GPA group is a **reusable template** that contains an **ordered list of references to
+existing WooCommerce Global Attribute definitions**. [DECISION D28]
 
-Registered in `bootstrap.php` on `init` (precedent: `anishop-hero` CPT registration).
-[REQ — decided data model]
+- A group **defines which attributes should be added to a product** — it does **not**
+  define the product's actual attribute values. [DECISION D28]
+- A group **references attribute definitions, not terms.** It never stores, duplicates, or
+  manages attribute terms or product-specific values. [DECISION D28]
+- A group is **store-wide and reusable**: the same group can be loaded onto any number of
+  products. [DECISION D28]
+- **Example:** a group named "Mobile" contains the ordered references
+  `pa_processor`, `pa_display`, `pa_storage`, `pa_ram`, `pa_battery`, `pa_os`. Loading it
+  onto a product adds those six Global Attributes to the product's native attribute list,
+  in that order. The admin then selects the actual terms/values per product.
+
+### 2.2 Global Attribute-only membership
+
+- GPA groups contain **Global Attribute definitions only** (taxonomy-based `pa_{slug}`
+  attributes from the WooCommerce Global Attribute registry). [DECISION D28]
+- **Custom product attributes are NOT group members.** They are not loaded through GPA
+  groups and have no GPA management workflow. They remain fully supported as native
+  WooCommerce product attributes and receive the same frontend presentation treatment as
+  Global Attributes. [DECISION D32]
+- **No custom-attribute aggregation, custom-attribute group membership, or custom-attribute
+  vocabulary management subsystem** exists in this architecture. The previous
+  custom-attribute aggregation (raw SQL, transient cache, product-status scope) is
+  **superseded/obsolete** (D25) because groups no longer draw from a custom-attribute
+  vocabulary. [DECISION D28]
+
+### 2.3 Group CPT design
+
+CPT `ani_gpa_group` (registered in `bootstrap.php` on `init`; precedent: `anishop-hero`
+CPT registration). [REQ — decided data model]
 
 | Argument | Value | Rationale |
 |----------|-------|-----------|
@@ -169,1058 +275,1132 @@ Registered in `bootstrap.php` on `init` (precedent: `anishop-hero` CPT registrat
 | `public` | `false` | Groups are admin-only; never exposed in the frontend query loop or REST. [REQ] |
 | `publicly_queryable` | `false` | No public permalinks. [REQ] |
 | `show_ui` | `true` | Admin list/edit screens. [REQ] |
-| `show_in_menu` | `true` (own top-level menu, `menu_position` ~25, `menu_icon` dashicons) | Precedent: `anishop_hero_slide` uses its own top-level menu. [RECOMMEND] |
-| `show_in_rest` | `false` | No Gutenberg/REST exposure. [REQ] |
+| `show_in_menu` | `false` | The top-level menu is added explicitly via `add_menu_page` so its position can be controlled to sit immediately after Products (§12). [DECISION D35] |
+| `show_in_rest` | `false` | No Gutenberg/REST exposure of the CPT itself. [REQ] |
 | `exclude_from_search` | `true` | Not searchable. [REQ] |
 | `has_archive` | `false` | No archive. [REQ] |
-| `supports` | `['title', 'page-attributes']` | `title` = group name; `page-attributes` = `menu_order` for global group sorting. [RECOMMEND] |
-| `capability_type` | `post` (default) with explicit `map_meta_cap` | Save handlers check `edit_post`/`edit_posts` (see §10.1). [REQ] |
+| `supports` | `['title']` | `title` = group name. (No `page-attributes`/`menu_order` — global group ordering is **not** a required feature, §7.2.) [DECISION D31] |
+| `capability_type` | `post` (default) with explicit `map_meta_cap` | Save handlers check `edit_post`/`edit_posts` (§13). [REQ] |
 | `rewrite` | `false` | No rewrite rules (avoids flush-rewrites side effects). [RECOMMEND] |
 
 - **Group name** = the CPT post title. [REQ]
-- **Global group order** = `menu_order` (page-attributes), used as the default order when
-  groups are listed/loaded. Per-product order is separate (§3.1). [RECOMMEND]
-- **No** `post_status` beyond `publish`/`draft`. A group is renderable only when
-  `publish`; draft groups are assignable in the admin but never rendered on the
-  frontend. [DECISION D24 — U11]
+- **Group description** = optional; stored in the post content (or a dedicated meta if a
+  richer editor is needed). Not required by the product vision. [RECOMMEND]
+- **Group status:** standard WordPress `publish` / `draft`. Only `publish` groups are
+  listed in the product-edit group picker and may be loaded (§4.4, §13). [RECOMMEND —
+  reassessed from D24/U11; see the Phase 2A.3 report]
+- **Global group ordering is NOT a required feature.** The group list uses the default
+  (title / date) ordering. [DECISION D31]
 
-### 2.2 Taxonomy `ani_gpa_group_cat`
+### 2.4 Group categories (open question)
 
-Registered in `bootstrap.php` on `init`, attached to `ani_gpa_group`. [REQ — decided data model]
+The original roadmap (ROADMAP §1.2) included "Group attribute categories" and a
+"Load Group Categories" action. The clarified Phase 2A.3 product vision (§3 of the task)
+does **not** mention group categories, and the core workflow (select a group → Load) does
+not depend on them.
 
-| Argument | Value | Rationale |
-|----------|-------|-----------|
-| `hierarchical` | `true` | Group categories form a tree (like `product_cat`). [RECOMMEND] |
-| `public` | `false` | Admin-only. [REQ] |
-| `show_ui` | `true` | Standard WP taxonomy UI (create/edit/delete categories) — satisfies ROADMAP §1.2 with zero custom code. [REQ] |
-| `show_in_menu` | `false` (appears under the CPT menu) | Keeps the admin surface compact. [RECOMMEND] |
-| `show_in_rest` | `false` | No REST exposure. [REQ] |
-| `rewrite` | `false` | No rewrite rules. [RECOMMEND] |
-
-- **Group → category** is the standard term relationship (one group may belong to one or
-  more categories). [RECOMMEND]
-- "Load Group Categories" (ROADMAP §1.3) loads **all groups of a category** at once —
-  resolved via `get_objects_in_term()` / a `WP_Query` on the CPT with a `tax_query` on
-  `ani_gpa_group_cat`. [REQ]
-
-### 2.3 Group value storage (`_ani_gpa_group_values`)
-
-A group stores its **ordered list of attribute value references** as post meta
-`_ani_gpa_group_values` (serialized array). This is the group's "set of existing
-attribute values selected to be displayed under it" (reference behavior). [REQ]
-
-- Written only via the group edit save handler (nonce + `edit_post` cap + single
-  authority sanitization). [REQ]
-- Order in the array = the group's default value order (drag-and-drop in the group edit
-  screen). [REQ]
-- Each entry is a **value reference** (§2.4).
-
-### 2.4 Value reference structure (the core data primitive)
-
-A **value reference** is the unit used by both the group's value list and the product's
-selected values. It is a small associative array:
-
-```php
-array(
-  'attribute' => 'pa_color',   // attribute NAME (see §5 for exact format per kind)
-  'value'     => 'green',      // taxonomy: term SLUG;  custom: raw value string (display text)
-  'value_id'  => 4300,         // taxonomy: term ID;    custom: 0
-)
-```
-
-**Field semantics (live-verified 2026-11-25 on fixtures 13143 + 17028):**
-
-| Field | Taxonomy (global) attribute | Custom (product-specific) attribute |
-|-------|------------------------------|--------------------------------------|
-| `attribute` | `pa_{slug}` — e.g. `pa_color` (matches `WC_Product_Attribute::get_name()`) | raw attribute name — e.g. `نوع اصلاح` (matches `get_name()`; **not** URL-encoded) |
-| `value` | term **slug** — e.g. `green` (matches `get_variation_attributes()` option format) | raw value **string** — e.g. `برش مستقیم / خشک وخیس` (the display text itself) |
-| `value_id` | term **ID** — e.g. `4300` (matches `get_attributes()` option format) | `0` (custom attributes have no term ID) |
-
-**Why both `value` (slug) and `value_id` (term ID) for taxonomy:**
-`WC_Product::get_attributes()` returns **term IDs** as options, while
-`get_variation_attributes()` returns **term slugs**. Storing both lets the renderer
-resolve by ID (stable) and verify by slug, and lets the admin UI match against either
-source. [LIVE-VERIFIED 2026-11-25] [REQ]
-
-**Custom attribute note (D20):** for custom attributes, `value` is the **entire stored
-string** as WC sees it (parsed by `wc_get_text_attributes()`, which splits only on `|`).
-Anishop has **0** pipe-separated custom attributes, so each custom attribute yields
-exactly **one** value (the whole string). GPA does **not** split on commas. [DECISION D20]
-[LIVE-VERIFIED 2026-11-25]
-
-**A value reference is a *candidate*, not a product assertion.** A value reference
-identifies a value in the **group vocabulary** (tier A, §5.7). It does **not** by itself
-prove that the value exists on a given product. Product-specific validity — "does this
-value actually exist on the *current* product?" — is a **separate** enforcement, applied at
-both save and render (§5.7, §5.8, §4.4, §7.2). Membership in a group alone is **not**
-sufficient to render a value on a product. [REQ]
-
-**Resolution at render time** (see §7.2) — *only after* the value has passed
-product-specific validation (§5.8):
-- Taxonomy: `get_term( $value_id, $expected_taxonomy )` (taxonomy-scoped lookup, §5.8) →
-  display `term->name` (current name). If the term is missing, is not a `WP_Term`, or does
-  not belong to the expected taxonomy → skip the value (stale/invalid; degrade gracefully,
-  R-L5).
-- Custom: display `$value` directly (it is the display text), **only if** it still matches
-  a value actually present on the product (§5.8).
-
-## 3. Product-to-group data contract
-
-### 3.1 `_ani_gpa_assigned_groups`
-
-- **Type:** product meta, serialized array of **group post IDs** (`int`), in **display
-  order**. [REQ — decided data model]
-- **Semantics:** the ordered list of groups assigned to this product. The array order is
-  the **per-product group order** (drag-and-drop on the product edit screen), independent
-  of the groups' global `menu_order`. [REQ]
-- **Written** only via the product-edit save handler (§6.6). [REQ]
-- **Read** by the frontend renderer (§7) and the product-edit UI. [REQ]
-- **Lifecycle (D15, R-L4):** the assignment **survives product-type changes** (simple ↔
-  variable, with/without variations). Groups stay assigned; rendering adapts to whatever
-  attributes the parent product actually has. GPA never deletes or rewrites the
-  assignment on type change. [DECISION D15]
-- **Stale group IDs:** if a group post is deleted, its ID may remain in the array. The
-  renderer skips missing groups (R-L5). A cleanup pass is optional and **not** required
-  (D21 — no catalog cleanup). [RECOMMEND]
-
-### 3.2 Invariants
-
-- Every ID in `_ani_gpa_assigned_groups` is a valid `ani_gpa_group` post ID **at write
-  time** (validated on save). [REQ]
-- No duplicates. [REQ]
-- The array is always an array (never a scalar); empty array = no groups assigned. [REQ]
-
-### 3.3 Group reference validation (correct `get_post()` usage)
-
-A group ID stored in `_ani_gpa_assigned_groups` must be validated as a **valid group
-reference** before it is trusted — at save time (§4.4) and again at render time (§7.2).
-The validation is a **sequence**, not a single call:
-
-1. `$post = get_post( $group_id );` — retrieve the post. **Do not** pass a post type as the
-   second argument: `get_post( $id, 'ani_gpa_group' )` is **incorrect** — the second
-   parameter of `get_post()` is an *output format* (`OBJECT` / `ARRAY_A` / `ARRAY_N`),
-   **not** a post-type constraint. [REQ — WP core API]
-2. **Existence:** if `$post` is `null` → the reference is **stale** (the group was deleted).
-   Reject / skip it.
-3. **Post type:** verify `$post->post_type === 'ani_gpa_group'`. A post that exists but has
-   a different `post_type` is **not** a group — reject it. `get_post()` does **not** enforce
-   the expected post type; GPA must check it explicitly. [REQ]
-4. **Status:** verify the post status is permitted **for the operation** (see below).
-5. Reject any reference that fails steps 2–4.
-
-**Three distinct cases (do not conflate):**
-
-| Case | Meaning | Handling |
-|------|---------|----------|
-| Valid group reference | exists, `post_type = ani_gpa_group`, status permitted | accepted |
-| Exists, wrong post type | `get_post()` returns a post, but `post_type !== 'ani_gpa_group'` | rejected (not a group) |
-| Exists, disallowed status | correct post type, but status not permitted for the operation | rejected for that operation |
-
-**Permitted status per operation** [DECISION D24 — U11, 2026-11-25]:
-- **Save / assignment (§4.4):** groups with status `publish` **or** `draft` may be
-  selected and assigned to products. Groups with any other status must **not** be
-  accepted for new assignments or saved references.
-- **Render (§7.2):** a group renders only when its status is `publish`. Draft groups
-  must **never** appear on the public frontend, even if their IDs exist in product
-  metadata.
-- The checks are distinct and cumulative: group **existence** (step 2), expected
-  **post type** `ani_gpa_group` (step 3), and **allowed status for the operation**
-  (step 4 — `publish`/`draft` for administration, `publish` only for rendering). A group
-  must pass all checks relevant to the operation being performed.
-
-This sequence is the single source of truth for "is this a usable group?"; both the save
-handler and the renderer call it (or an equivalent) rather than re-implementing the checks.
-[REQ]
+- **Status:** [UNRESOLVED] — group categories are **not part of the core Phase 2A.3
+  architecture**. They are recorded as an open item for owner confirmation.
+- The core data model, Load operation, and frontend are **independent** of categories, so
+  adding them later (if the owner confirms) is a contained, orthogonal extension
+  (taxonomy `ani_gpa_group_cat` + a "load all groups of a category" action).
+- **No** category taxonomy is registered in the core architecture until the owner
+  confirms the feature is in scope. [UNRESOLVED]
 
 ---
 
-## 4. Selected attribute value data contract
+## 3. Data model
 
-### 4.1 `_ani_gpa_selected_values`
+### 3.1 GPA group (CPT `ani_gpa_group`)
 
-- **Type:** product meta, serialized **associative array**:
-  `group_id (int) => ordered array of value references` (§2.4). [REQ — decided data model]
-- **Semantics:** for each assigned group, the **subset** of that group's values the admin
-  chose to display on the product page, in display order. [REQ]
-- **Written** only via the product-edit save handler (§6.6). [REQ]
-- **Read** by the frontend renderer (§7). [REQ]
+A reusable group/template entity containing:
 
-Example (product 17028, two assigned groups):
+| Field | Storage | Notes |
+|-------|---------|-------|
+| Group identity | CPT post ID | Standard WordPress post. |
+| Group title/name | Post title | The group's display name. [REQ] |
+| Group description (optional) | Post content (or meta) | Not required by the product vision. [RECOMMEND] |
+| Ordered Global Attribute references | Post meta `_ani_gpa_group_attributes` | Serialized array of `pa_{slug}` strings, in order (§3.2). [REQ] |
+| Publication status | Standard `post_status` | `publish` / `draft`; only `publish` is loadable (§2.3). [RECOMMEND] |
+
+### 3.2 Global Attribute reference (storage model)
+
+A group stores its **ordered list of Global Attribute references** as post meta
+`_ani_gpa_group_attributes` — a **serialized array of `pa_{slug}` strings**, in the
+admin's chosen order. [REQ]
 
 ```php
-array(
-  501 => array(                       // group 501 "رنگ‌ها"
-    array( 'attribute' => 'pa_color', 'value' => 'green',  'value_id' => 4300 ),
-    array( 'attribute' => 'pa_color', 'value' => 'black',  'value_id' => 4286 ),
-  ),
-  502 => array(                       // group 502 "حافظه"
-    array( 'attribute' => 'pa_memory-capacity', 'value' => '256gb', 'value_id' => 4292 ),
-  ),
-)
+// _ani_gpa_group_attributes for a "Mobile" group:
+array( 'pa_processor', 'pa_display', 'pa_storage', 'pa_ram', 'pa_battery', 'pa_os' )
 ```
 
-### 4.2 Validation (on save)
+**Why the taxonomy name (`pa_{slug}`) is the reference key:**
 
-Save-time validation enforces **both** group membership **and** product-attribute
-membership. A value reference is accepted only if it passes **all** of the following;
-anything that fails is dropped (not persisted as a valid selection). [REQ]
+- It is the **exact value** the native `woocommerce_add_attribute` AJAX action expects in
+  its `taxonomy` parameter (`WC_AJAX::add_attribute()` calls
+  `wc_attribute_taxonomy_id_by_name( $_POST['taxonomy'] )` and
+  `set_name( $_POST['taxonomy'] )`). [WC 11.3.1 SOURCE — class-wc-ajax.php:779]
+- It is **directly validatable**: `taxonomy_exists( 'pa_{slug}' )` confirms the taxonomy is
+  registered, and `wc_attribute_taxonomy_id_by_name( 'pa_{slug}' )` returns the attribute
+  ID (`0` if the attribute no longer exists). [WC 11.3.1 SOURCE — wc-attribute-functions.php:199]
+- The **label** and **ID** are derived at display time from the registry
+  (`wc_get_attribute_taxonomy_labels()`, `wc_get_attribute( $id )`), so they are **not**
+  stored (avoiding stale duplicated data). [WC 11.3.1 SOURCE]
+- A Global Attribute **definition** is distinct from its **taxonomy terms**. The reference
+  points to the definition (the `pa_{slug}` taxonomy), **never** to individual terms.
+  [REQ]
 
-- **Group key:** the key must be a group ID present in `_ani_gpa_assigned_groups` **and** a
-  valid group reference (§3.3: exists, `post_type = ani_gpa_group`, status permitted for
-  save). [REQ]
-- **Group membership (tier A):** the value reference must be a member of that group's
-  `_ani_gpa_group_values` (matched by `attribute` + `value_id` for taxonomy,
-  `attribute` + `value` for custom). Non-members are dropped. [REQ]
-- **Product-attribute membership (tier B):** the value reference must also match a value
-  **actually present on the current product** (§5.8). Group membership alone is **not**
-  sufficient — a value that exists in the group but not on the product is dropped. [REQ]
-- **Term / taxonomy identity (taxonomy values):** the term ID must resolve to a `WP_Term`
-  in the expected taxonomy, and the stored slug must be consistent with it (§5.8). [REQ]
-- Value references are re-serialized in the admin's chosen order. [REQ]
-- Groups assigned but with **no** selected values are allowed — this is a **valid
-  administrative state**; the assignment itself is **not** rejected solely because no
-  values have been selected. Such a group produces **no** frontend table (no empty
-  table, no heading or group label without rows) — see §7.2, §7.4. [DECISION D27 —
-  approved empty-group behavior, 2026-11-25]
+**Invariants:**
 
-### 4.3 Empty / stale handling
+- Each entry is a non-empty string matching `pa_{slug}` (slug = `wc_sanitize_taxonomy_name`
+  output). [REQ]
+- **No duplicates** within a group. [REQ]
+- The array is always an array (never a scalar); empty array = a group with no attributes
+  (a valid administrative state — see §4.4). [REQ]
+- **Order in the array = the initial insertion sequence** when the group is loaded (§7.1).
+  [DECISION D31]
 
-- **No assigned groups** → renderer outputs nothing; native table stays visible. [D17]
-- **Assigned group, no selected values** → the group is **skipped** (no empty table, no
-  heading rendered). [DECISION D27 — approved empty-group behavior, 2026-11-25]
-- **Selected value whose term was deleted** → that value is skipped; the rest of the
-  group renders. [RECOMMEND] (R-L5)
+### 3.3 Reference integrity and validation
 
-### 4.4 Save-time vs render-time revalidation
+A Global Attribute reference can become **stale** if the attribute is **renamed** or
+**deleted** in WooCommerce. The verified WC 11.3.1 behavior:
 
-GPA treats stored metadata as **untrusted input** at both boundaries. The two boundaries
-are distinct and both are mandatory. [REQ]
+- **Rename** (`wc_update_attribute` / `wc_create_attribute` with a changed slug): WC
+  **migrates** the taxonomy — it updates `wp_term_taxonomy.taxonomy` from `pa_{old}` to
+  `pa_{new}`, updates the `order_pa_{old}` termmeta, rewrites the `_product_attributes`
+  meta of **all** products using that attribute (renaming the key and `name`), and updates
+  variation meta keys. After a rename, `pa_{old}` **no longer exists** as a taxonomy.
+  [WC 11.3.1 SOURCE — wc-attribute-functions.php:656-714]
+- **Delete** (`wc_delete_attribute`): WC deletes the `woocommerce_attribute_taxonomies`
+  row, deletes **all terms** of `pa_{slug}`, and **unregisters** the taxonomy. After
+  deletion, `pa_{slug}` **no longer exists**. [WC 11.3.1 SOURCE — wc-attribute-functions.php:777]
 
-**Save-time validation** (product-edit save handler, §6.6): validate *incoming* data before
-persisting. For each submitted group ID and value reference:
-- Verify the group reference (§3.3): exists, `post_type = ani_gpa_group`, status permitted
-  for save.
-- Verify group membership (tier A) **and** product-attribute membership (tier B) per §4.2.
-- Verify taxonomy / term identity (§5.8) for taxonomy values; exact value identity (§5.8)
-  for custom values.
-- Persist **only** the accepted subset, in the admin's chosen order. Rejected references are
-  dropped, not stored. [REQ]
+**Consequence:** a group reference stored as `pa_{old}` becomes **stale** (the taxonomy no
+longer exists) after a rename or delete. WC provides **no** "renamed-from" mapping, so a
+stale reference **cannot** be auto-resolved; the admin must re-select the attribute.
 
-**Render-time validation** (frontend renderer, §7.2): treat *stored* metadata as potentially
-stale or invalid — it may have been valid when saved, but the product, its attributes, the
-group, or the terms may have changed since. Before rendering, re-verify **everything**:
-- Verify each group reference (§3.3) and its render-permitted status (`publish`).
-- Verify the group / value relationship (the value is still in the group's vocabulary).
-- Verify taxonomy + term identity (§5.8) for taxonomy values.
-- Verify custom attribute identity + exact value match (§5.8).
-- Verify each selected value **still exists on the current product** (tier B).
-- **Exclude** any invalid or stale value / group from the output. [REQ]
+**Validation contract (two boundaries):**
 
-**Rendering must not:** assume previously saved metadata is permanently valid; modify product
-metadata; or perform destructive cleanup. [REQ]
+1. **Group save time** (`save_post_ani_gpa_group` handler): for each submitted reference,
+   verify it is a valid `pa_{slug}` string **and** the attribute currently exists
+   (`taxonomy_exists( $ref )` **and** `wc_attribute_taxonomy_id_by_name( $ref ) > 0`).
+   Reject/flag references that fail. Persist only the accepted, de-duplicated, ordered
+   list. [REQ]
+2. **Load time** (product-edit Load operation): for each reference in the selected group,
+   re-verify the attribute still exists. **Skip** stale references (do not insert a row
+   for a non-existent attribute) and surface a warning to the admin listing the skipped
+   attributes. [REQ]
 
-**Stale selected-value lifecycle** [DECISION D26 — U13, 2026-11-25]: a selected value may
-become stale if the corresponding attribute or value is later removed or changed on the
-product. The approved lifecycle:
-- **Render time:** revalidate every selected value against the current product
-  attributes; ignore values that are no longer valid; do not render stale values; stale
-  values do **not** make a group renderable and do **not** suppress the native
-  WooCommerce attributes table.
-- **Save time:** revalidate submitted values against the current product attributes;
-  reject invalid or stale submitted selections; persist only accepted valid selections
-  according to the existing save contract (§4.2).
-- **Storage:** do **not** automatically delete previously stored stale selections merely
-  because they are invalid during rendering. Preserve stale references in existing
-  metadata until an explicit valid save operation replaces the submitted selection set.
-  No automatic background cleanup or migration (consistent with D21 — no catalog
-  cleanup).
-- **Non-destructive:** rendering is read-only — it must not modify product metadata,
-  delete stale references, rewrite group assignments, or trigger destructive cleanup.
+- **Stale references are not auto-removed** from the group on load (load is read-only with
+  respect to the group). The group editor **flags** stale references so the admin can
+  remove or replace them on the next group save. [RECOMMEND]
+- This is consistent with D21 (no catalog cleanup) — GPA never mutates the Global
+  Attribute registry or product data as a side effect of validation. [DECISION D21]
 
-**No valid values remain:** if, after render-time validation, a group has no valid values (or
-no group has any), GPA renders nothing for that group / product and the native table stays
-visible (§7.3, D17). [REQ]
+### 3.4 Product data (native WooCommerce is the single source of truth)
 
-## 5. Global vs custom attribute resolution
+- The product's attributes are stored **exclusively** in WooCommerce's native
+  `_product_attributes` post meta (a serialized array of `WC_Product_Attribute` entries),
+  managed by the native product data store (`WC_Product_Data_Store_CPT::read_attributes()`
+  / `write_attributes()`). [WC 11.3.1 SOURCE]
+- **GPA does not create a second source of truth.** After a group is loaded and the admin
+  saves, the product's attributes are ordinary native WooCommerce attributes. There is
+  **no** behavioral distinction between an attribute loaded through GPA, a Global
+  Attribute added manually, and a Custom Attribute added manually. [DECISION D29] [DECISION
+  D30]
+- **GPA writes product attributes only through the native save lifecycle** (the admin
+  saves via the native "Save attributes" button or the product save, which runs
+  `WC_Meta_Box_Product_Data::save()` → `prepare_attributes()` → `set_attributes()` →
+  `save()`). GPA never calls `set_attributes()`/`save()` directly and never writes
+  `_product_attributes` itself. [DECISION D29] [REQ]
+- **The parent product's native attribute data remains authoritative** for product
+  attribute presentation. `variable` type does not prove variations exist; GPA does not
+  infer product type from variation existence. [DECISION D15 — preserved]
 
-GPA **must** support both global (taxonomy) and custom (product-specific) attributes; the
-two storage mechanisms are **not** identical internally and each is resolved with the
-appropriate WooCommerce API. [DECISION D14]
+### 3.5 Product metadata (none)
 
-### 5.1 Taxonomy (global) attributes
+- **No GPA-specific product metadata is introduced.** The previous contracts
+  `_ani_gpa_assigned_groups` and `_ani_gpa_selected_values` are **removed** from the
+  active architecture. [DECISION D30]
+- **Rationale:** the new architecture has no persistent group assignment (a loaded group's
+  attributes become ordinary native attributes) and no per-product value selection (values
+  are managed natively). Storing which group "originally supplied" an attribute
+  (provenance) has **no** functional requirement in the new model, so it is not stored.
+  [DECISION D30]
+- **The "Create group for this product" control is UI-only.** It does **not** introduce a
+  persisted Boolean product flag. Its state is transient (admin UI session) and has no
+  effect on stored data. [DECISION D37]
+- If a future, concrete requirement demonstrates a need for a specific piece of product
+  metadata, it must be documented and approved before introduction. Until then, the
+  architecture avoids GPA-specific product metadata. [REQ]
 
-- **Key:** `pa_{slug}` (e.g. `pa_color`, `pa_memory-capacity`). [LIVE-VERIFIED 2026-11-25]
-- **Detection:** `WC_Product_Attribute::is_taxonomy() === true`; the attribute has a
-  non-zero taxonomy ID (`get_id()`). [WC 11.3.1 SOURCE]
-- **Value source (store-wide vocabulary):** all terms of the `pa_{slug}` taxonomy —
-  `get_terms( array( 'taxonomy' => 'pa_{slug}', 'hide_empty' => false ) )`. Used by the
-  admin value picker. [REQ]
-- **Value source (per product):** `wc_get_product_terms( $product_id, 'pa_{slug}' )` or
-  the term IDs from `get_attributes()[name]->get_options()`. [WC 11.3.1 SOURCE]
-- **Display text:** the **term name**, resolved at render time so renames are reflected.
-  Resolve with a **taxonomy-scoped** lookup — `get_term( $value_id, 'pa_{slug}' )` — so the
-  term is verified to belong to the expected taxonomy. A bare `get_term( $value_id )` does
-  **not** prove taxonomy membership (see §5.8). [RECOMMEND]
-- **Value reference:** `attribute = pa_{slug}`, `value = term slug`, `value_id = term ID`.
+---
 
-### 5.2 Custom (product-specific) attributes
+## 4. Group editor workflow
 
-- **Key:** the raw attribute name (e.g. `نوع اصلاح`) — **not** URL-encoded.
-  [LIVE-VERIFIED 2026-11-25]
-- **Detection:** `WC_Product_Attribute::is_taxonomy() === false`; `get_id() === 0`.
-  [WC 11.3.1 SOURCE]
-- **Value source (per product):** the `value` string in `_product_attributes`, parsed by
-  `wc_get_text_attributes()` (splits **only** on `|`). For Anishop (0 pipe-separated
-  custom attributes) this yields exactly **one** value per custom attribute — the whole
-  string. [DECISION D20] [LIVE-VERIFIED 2026-11-25]
-- **Value source (store-wide vocabulary, for the admin picker):** there is **no** central
-  registry of custom attribute values. GPA aggregates distinct custom attribute
-  name → value pairs from the catalog. [RECOMMEND]
+### 4.1 Group list / edit
 
-  **Query architecture (corrected 2026-11-25).** The aggregation reads
-  `_product_attributes` from the postmeta table **and** restricts to product posts. Because
-  `wp_postmeta` has **no** `post_type` column, the query **must JOIN the posts table** to
-  filter by post type (and, if chosen, by post status). Conceptual shape (table names via
-  `$wpdb->posts` / `$wpdb->postmeta`; the prefix is **never** hardcoded):
-
-  ```sql
-  SELECT pm.meta_value
-  FROM {$wpdb->postmeta} AS pm
-  INNER JOIN {$wpdb->posts} AS p ON p.ID = pm.post_id
-  WHERE pm.meta_key = '_product_attributes'
-    AND p.post_type = 'product'
-    AND p.post_status = 'publish'   -- U12 (D25): published products only
-  ```
-
-  - **Why the JOIN is required:** `post_type` (and `post_status`) live on `wp_posts`, not on
-    `wp_postmeta`. Filtering `post_type` directly on `wp_postmeta` is structurally invalid
-    (no such column) and would either error or silently match non-product meta. [REQ]
-  - **Product-status inclusion** [DECISION D25 — U12, 2026-11-25]: only products with
-    `post_status = 'publish'` contribute custom-attribute values to the store-wide group
-    vocabulary. Products in any other status must **not** contribute values — at minimum
-    `draft`, `pending`, `private`, `future`, `trash`. Do **not** silently include
-    non-published products. The status restriction is applied to the **posts table**
-    (`p.post_status = 'publish'` in the JOIN above), not to the postmeta table. This
-    decision does **not** introduce any catalog cleanup or migration behavior.
-  - **Safe unserialization of `_product_attributes` (mandatory contract).** Each
-    `meta_value` is a **serialized** PHP array. The raw SQL path returns the raw string,
-    so GPA must unserialize it itself. The contract:
-    1. **No object instantiation** from untrusted serialized metadata, ever.
-    2. **`allowed_classes => false`** wherever explicit unserialization is required.
-       **`maybe_unserialize()` does not provide this restriction:** in the installed
-       WP 7.1.5 it calls `@unserialize( trim( $data ) )` with the **default**
-       `allowed_classes` (embedded objects are instantiated), so GPA does **not** rely
-       on `maybe_unserialize()` for deserialization safety on this path. A
-       `maybe_unserialize()`-first pattern is specifically **not** used here: for a
-       serialized array blob (the actual shape of `_product_attributes`), it would
-       already have unserialized the data with the default `allowed_classes` —
-       instantiating any embedded objects — before any guarded fallback could run.
-       [WP core API — `wp-includes/functions.php:653`, verified 2026-11-25]
-    3. **Type validation:** the unserialized result must be an `array`; anything else
-       (string, scalar, `false`, `__PHP_Incomplete_Class`) is rejected.
-    4. **Structure validation:** before processing, verify the expected array shape —
-       a list of entries, each an array with the expected `name` / `value` keys and
-       string values (the shape `WC_Product_Data_Store_CPT::read_attributes()`
-       consumes). Entries that do not match (including `__PHP_Incomplete_Class`
-       objects produced by `allowed_classes => false`) are rejected.
-    5. **Graceful handling:** malformed, corrupted, or unexpected metadata is skipped
-       (and logged under `WP_DEBUG`); it must never cause warnings, fatal errors, or
-       uncontrolled processing, and must never abort the whole aggregation.
-    6. **Exclusion:** invalid metadata contributes **no** values to the Custom
-       Attribute aggregation.
-    Illustrative pattern (not implementation code):
-    ```php
-    // $raw_value: raw string from the SQL query (wp_postmeta.meta_value)
-    $data = $raw_value;
-    if ( is_string( $data ) && is_serialized( $data ) ) {
-        $data = @unserialize( $data, array( 'allowed_classes' => false ) );
-    }
-    if ( ! is_array( $data ) ) {
-        // Not a serialized array, or unserialization failed → reject this record.
-        continue;
-    }
-    // Then validate the expected entry structure (contract item 4) before processing.
-    ```
-    The `@` suppresses `unserialize()`'s own warning on malformed input; it is **not**
-    a substitute for the validation above — validation is the protection, suppression
-    is only for noise control. If a value is instead obtained via the metadata API
-    (`get_post_meta()` → `maybe_unserialize()`), the same contract applies to the
-    result: treat it as untrusted, validate type + structure, and never assume object
-    instantiation was prevented. [REQ]
-  - **Caching:** the distinct `name => [values]` map is **cached in a transient** (single
-    key) so the expensive query runs only on cache miss. [RECOMMEND]
-  - **Cache invalidation** — the transient must be invalidated (deleted) on events that can
-    change custom attribute values. Required coverage:
-    - Product creation (`save_post_product` / `wp_insert_post` for `product`).
-    - Product update (`save_post_product`).
-    - Product deletion / trashing (`wp_trash_post`, `before_delete_post`).
-    - Product restoration (`untrash_post`).
-    - Direct changes to `_product_attributes` (covered by `save_post_product` in the normal
-      admin flow; **import / bulk-update paths** that write `_product_attributes` without
-      firing `save_post_product` must be verified). [2B-VERIFY]
-    - **Do not** attempt an exhaustive event implementation here; the above is the required
-      architectural behavior, and the exact hook coverage (especially import / bulk /
-      programmatic writes) is a Phase 2B verification item (B1-14). [2B-VERIFY]
-
-  This avoids the per-product object loop that R-L10 warns against. [RECOMMEND] — see §10.2
-  for the performance contract.
-- **Display text:** the raw value string, stored verbatim in the value reference. [REQ]
-- **Value reference:** `attribute = raw name`, `value = raw string`, `value_id = 0`.
-
-### 5.3 Dual support (D14)
-
-- Both kinds participate in groups and in per-product selection. [DECISION D14]
-- The admin value picker presents **both** kinds (taxonomy terms + custom values),
-  clearly labeled. [REQ]
-- The renderer resolves each value reference by its kind (taxonomy → term lookup; custom
-  → verbatim string). [REQ]
-- A single group may mix values from multiple attributes of either kind. [REQ]
-
-### 5.4 Parent-first (D15)
-
-- The **parent product** is the primary attribute source. GPA must **not** require actual
-  variation children to display attributes. [DECISION D15]
-- `variable` type does **not** prove variations exist. GPA handles: simple,
-  variable-with-variations, variable-without-variations, and inconsistent variation
-  flags — always reading attributes from the parent via `wc_get_product( $id )` +
-  `get_attributes()`. [DECISION D15]
-- GPA **never** modifies native variation semantics. [DECISION D15]
-
-### 5.5 Product-type detection (R-L11)
-
-- **Single product:** use the product API — `$product->get_type()` /
-  `$product->is_type( 'variable' )`. Never infer type from the presence of variations or
-  from `is_variation` flags. [REQ]
-- **Batch taxonomy queries** (e.g. "which products use term X"): use
-  `WP_Query` with `field => 'slug'` (or `'ID'`) to avoid full object hydration. [REQ]
-
-### 5.6 Value source contract (summary)
-
-| Concern | Taxonomy | Custom |
-|---------|----------|--------|
-| Attribute key | `pa_{slug}` | raw name |
-| Kind detection | `is_taxonomy() === true` | `is_taxonomy() === false` |
-| Store-wide values (picker) | `get_terms( pa_{slug} )` | cached catalog aggregation (transient) |
-| Per-product values | term IDs / `wc_get_product_terms()` | `wc_get_text_attributes( value )` |
-| Display text | term name (resolved by ID) | raw string (verbatim) |
-
-### 5.7 Value validity model (three tiers)
-
-GPA distinguishes **three** distinct sets of values. Conflating them is the root cause of
-incorrect frontend output, so the contract is explicit. [REQ]
-
-| Tier | Name | Definition | Source of truth |
-|------|------|------------|-----------------|
-| **A** | **Group vocabulary** | The reusable set of candidate values defined by the attribute group (`_ani_gpa_group_values`). Store-wide, shared across products. | The group's own meta. |
-| **B** | **Product attribute values** | The values **actually present** on the current WooCommerce product (its real `_product_attributes` / taxonomy terms). | The product's native WC attribute data (read-only). |
-| **C** | **Selected product values** | The subset the admin explicitly chose to display on *this* product (`_ani_gpa_selected_values`). | Product meta, but **only valid** where C ⊆ (A ∩ B). |
-
-**The validity rule:** a value may be *selected* (tier C) and *rendered* on a product only
-if it is a member of the group's vocabulary (tier A) **and** actually exists on the product
-(tier B). In set terms: **valid C ⊆ (A ∩ B)**. [REQ]
-
-**Worked example (the failure this prevents):**
-- Group "رنگ‌ها" vocabulary (A): Green, Black, White, Gold.
-- Product's actual `pa_color` values (B): Green, Black.
-- The admin may select **only** Green and Black (A ∩ B). **White and Gold must not be
-  selectable or renderable** for this product, even though they exist in the group. [REQ]
-
-**Loading a group onto a product** (§6.3): loading a group makes its vocabulary (A)
-*available as candidates* in the admin UI. It does **not** copy values onto the product and
-does **not** modify native attributes. Only values in **A ∩ B** can become valid selections
-(C). The product's existing attribute data remains the source of truth (B). [REQ]
-[DECISION D9 — presentation-only]
-
-### 5.8 Matching contract: group value ↔ actual product attribute
-
-This is the exact identity contract used at **save** (§4.2) and **render** (§7.2) to decide
-whether a value reference (tier A) is actually present on the product (tier B). It is
-per-attribute-kind. [REQ]
-
-**Taxonomy (global) attributes** — match by **term ID + taxonomy identity together** (never
-by display label alone):
-
-1. The expected taxonomy is derived from the value reference's `attribute` field, which for
-   taxonomy attributes **is** the taxonomy slug (e.g. `pa_color`). [REQ]
-2. Resolve the term with a **taxonomy-scoped** lookup: `get_term( $value_id, $attribute )`.
-   This returns a `WP_Term` **only if** the term exists **and** belongs to that exact
-   taxonomy; otherwise it returns `null` / `WP_Error`. A bare `get_term( $value_id )` is
-   **insufficient** — it does not prove taxonomy membership. [REQ — WP core API]
-3. **Consistency:** the resolved term's `slug` must equal the stored `value` (slug) field.
-   A mismatch (stale slug, or an ID pointing at a different term) is invalid. [REQ]
-4. **Product membership:** the term must actually be assigned to the current product for this
-   attribute — i.e. `$value_id` is in the product's term set for that taxonomy, obtained via
-   `wc_get_product_terms( $product_id, $attribute )` (returns `WP_Term[]`) or the term IDs
-   from `get_attributes()[ $attribute ]->get_options()`. [REQ — WC 11.3.1 SOURCE]
-5. A term belonging to **any other** taxonomy (even one sharing the same `term_id` in a
-   different `term_taxonomy`) is **not** a valid match. [REQ]
-
-**Custom (product-specific) attributes** — match by **attribute-name identity + exact value
-identity**:
-
-1. **Name identity:** the value reference's `attribute` (raw name) must equal the product's
-   custom attribute name exactly (byte-for-byte; no case-folding, no extra trimming beyond
-   what WC itself does). [REQ]
-2. **Value identity:** the value reference's `value` (raw string) must be **exactly equal**
-   to one of the product's parsed values for that attribute, where the product's values are
-   obtained by `wc_get_text_attributes( $stored_value )` — the **existing WooCommerce
-   parsing behavior** (splits on `|` only, `html_entity_decode`s, trims, drops empties).
-   [REQ — WC 11.3.1 SOURCE]
-3. **No new normalization (D20):** GPA does **not** split or normalize on `|`, Persian comma
-   `،`, or ASCII comma `,`. It uses WC's parsed values as the reference point. Anishop has 0
-   pipe-separated custom attributes, so each custom attribute yields exactly one value (the
-   whole string). [DECISION D20]
-4. If the exact matching contract for a particular edge case (e.g. entity-encoding
-   differences between the stored and parsed forms) cannot be established from the current
-   specification and verified WC APIs, it is marked [2B-VERIFY] rather than guessed.
-   [2B-VERIFY]
-
-**Handling invalid / deleted / mismatched / stale references** (applies to both kinds):
-
-| Context | Behavior |
-|---------|----------|
-| Group validation (group edit save) | A value reference whose term is missing / wrong-taxonomy / inconsistent is rejected from `_ani_gpa_group_values` (or flagged). [REQ] |
-| Product save (§4.2) | A value reference that fails the matching contract is **dropped** (not persisted as a valid selection). [REQ] |
-| Frontend render (§7.2) | A value reference that fails the matching contract is **skipped** (not rendered); the rest of the group renders. [RECOMMEND] (R-L5) |
-
-**Preserved architecture:** the Global (taxonomy) and Custom attribute architecture is
-unchanged; this section only defines the *matching / identity* contract on top of it. [REQ]
-
-## 6. Admin integration contracts
-
-### 6.1 CPT admin (group list / edit)
-
-- **List table:** standard `WP_Post_Type` list (title, category, value count, order,
-  date). Pagination + batched queries (R-L10). [REQ]
+- **List table:** standard `WP_Post_Type` list (title, attribute count, status, date).
+  Pagination + batched queries (R-L10). [REQ]
 - **Edit screen:**
   - **Name** = post title. [REQ]
-  - **Group category** = taxonomy `ani_gpa_group_cat` (standard WP metabox). [REQ]
-  - **Order** = `menu_order` (page-attributes). [RECOMMEND]
-  - **Values** = ordered list of value references with **drag-and-drop** sorting. The
-    value picker lists existing values for **both** attribute kinds (§5.6). [REQ]
+  - **Global Attributes** = an ordered list of the group's Global Attribute references
+    (§3.2), with **add** (select from existing Global Attributes), **remove**, and
+    **drag-and-drop ordering**. [REQ]
+  - The attribute picker lists **existing Global Attribute definitions only** (from
+    `wc_get_attribute_taxonomies()`), clearly labeled with the attribute label. It does
+    **not** list terms or custom attributes. [DECISION D28] [DECISION D32]
 - **Save handler:** `save_post_ani_gpa_group` — nonce + `current_user_can( 'edit_post',
-  $post_id )` + single-authority sanitization of `_ani_gpa_group_values`. [REQ]
+  $post_id )` + single-authority sanitization/validation of `_ani_gpa_group_attributes`
+  (§3.3). [REQ]
 
-### 6.2 Taxonomy admin (group categories)
+### 4.2 Global Attribute selection
 
-- Standard WP hierarchical taxonomy UI (create/edit/delete) — zero custom code.
-  Satisfies ROADMAP §1.2. [REQ]
-
-### 6.3 Product-edit integration
-
-The GPA section appears on the product edit screen (Product Data → **Attributes** tab,
-consistent with the reference plugin's placement). [RECOMMEND]
-
-- **"Create group for this product" toggle** — a UI affordance that reveals the GPA
-  section for this product. The actual state is the presence of
-  `_ani_gpa_assigned_groups`; the toggle is not a separate persisted flag. [RECOMMEND]
-  (The reference exposes this toggle; its exact persistence is not specified — flagged.)
-- **"Manage Attribute Groups" select + Load** — loads **one** group onto the product: adds
-  its ID to `_ani_gpa_assigned_groups` and makes the group's vocabulary (tier A) available
-  as **candidates** in the value-selection UI. It does **not** copy values onto the product
-  and does **not** modify native attributes. Only values in **A ∩ B** (present on the
-  product, §5.7 / §5.8) can be selected; the seeded `_ani_gpa_selected_values` contains only
-  those valid candidates (or is left empty for the admin to choose). [REQ]
-- **"Load Group Categories"** — loads **all groups of a category** at once (tax_query on
-  `ani_gpa_group_cat`); the same A ∩ B candidate rule applies to each loaded group. [REQ]
-- **Value selection** — the admin checks/unchecks which **valid** (A ∩ B) loaded values
-  display on the product page (writes `_ani_gpa_selected_values`). Values that are in the
-  group but **not** on the product are not offered as selectable. [REQ]
-- **Per-product group sorting** — drag-and-drop reorders `_ani_gpa_assigned_groups`.
+- The picker source is `wc_get_attribute_taxonomies()` (the Global Attribute registry),
+  which returns objects with `attribute_id`, `attribute_name` (slug), `attribute_label`,
+  `attribute_type`, `attribute_orderby`, `attribute_public`. [WC 11.3.1 SOURCE —
+  wc-attribute-functions.php:55]
+- Each selectable entry is rendered as the attribute **label** (human-readable) and stores
+  the **taxonomy name** `pa_{slug}` (via `wc_attribute_taxonomy_name( $attribute_name )`)
+  as the reference. [WC 11.3.1 SOURCE — wc-attribute-functions.php:148]
+- Attributes already in the group are marked as selected; the admin can remove them.
   [REQ]
-- **Integration hook:** `woocommerce_product_options_attributes` (render) +
-  `woocommerce_process_product_meta` (save). [REQ]
-- **Data source for the picker:** a nonce-protected REST endpoint returns the group(s)'
-  value references for the current product (both attribute kinds), so the admin UI can
-  render checkboxes without a full page reload. [RECOMMEND]
+- **No term selection, no value entry, no custom-attribute entry** in the group editor.
+  The group editor manages **attribute definitions only**. [DECISION D28]
 
-### 6.4 Settings tab (Appearance → Anishop)
+### 4.3 In-group attribute ordering
 
-- GPA adds a tab to the existing Appearance → Anishop page via the
-  `anishop_admin_tabs` filter (house pattern; the mobile-nav module owns the page).
+- The admin orders the group's attributes by drag-and-drop. [DECISION D31]
+- The order is persisted in `_ani_gpa_group_attributes` (array order). [REQ]
+- This order determines the **initial insertion sequence** when the group is loaded onto a
+  product (§7.1). [DECISION D31]
+- **Global ordering of groups** (ordering the groups themselves relative to each other) is
+  **not** a required feature. [DECISION D31]
+
+### 4.4 Group save and empty-group state
+
+- A group may be saved with **no** attributes — a valid administrative state (an empty
+  template). The save is **not** rejected solely because the group has no attributes.
+  [RECOMMEND]
+- A group with no attributes, when loaded, inserts **no** rows (nothing to add). This is
+  the new-architecture analogue of the previous "empty group" rule, reinterpreted: a group
+  is a template, not a frontend table, so "empty" simply means "adds nothing." [DECISION
+  D33] (supersedes the D27 empty-group frontend model)
+- On save, references are validated per §3.3 (existence check); invalid references are
+  rejected/flagged. [REQ]
+
+---
+
+## 5. Product editor integration
+
+The GPA interface belongs **inside** WooCommerce **Product Data → Attributes**. It
+**coexists** with the native interface rather than replacing it. [DECISION D38]
+
+### 5.1 Placement
+
+- **Hook:** `woocommerce_product_options_attributes` — this action fires at the **end** of
+  the `#product_attributes` panel (after the native attribute rows and the "Save
+  attributes" button), inside the Attributes tab. [WC 11.3.1 SOURCE —
+  html-product-data-attributes.php:69]
+- GPA renders its section (toggle + group select + Load) via this hook. The section is
+  visually distinct (`.ani-gpa-` prefixed markup) but lives within the native Attributes
+  tab. [REQ]
+- **Save hook:** GPA does **not** add a product-meta save handler (there is no GPA product
+  meta to save, §3.5). The native `woocommerce_process_product_meta` save lifecycle is
+  unchanged and remains the sole writer of `_product_attributes`. [DECISION D29] [REQ]
+
+### 5.2 UI-only "Create group for this product" toggle
+
+- A checkbox/toggle that reveals the GPA group-select + Load controls for this product.
+  [DECISION D37]
+- **UI-only:** the toggle is **not** a persisted flag. It has no effect on stored data and
+  is not read by any save handler. Its state is transient (admin UI). [DECISION D37]
+- When off, the GPA controls are hidden; the native attribute editor is unaffected. [REQ]
+
+### 5.3 Group selection and Load
+
+- **Group select:** a `<select>` listing **`publish`** groups (title = group name). Only
+  published groups are offered (§2.3). [RECOMMEND]
+- **Load button:** on click, GPA performs the Load operation (§5.4).
+- **Data source:** a nonce-protected REST endpoint (`anishop/v1/gpa/groups/{id}/attributes`)
+  returns the selected group's **ordered** `pa_{slug}` list (validated per §3.3). The
+  endpoint is capability-checked (`edit_product` for the current product). [REQ]
+- **Multiple groups:** the admin can load one group, then load another; each Load appends
+  that group's attributes (subject to duplicate handling, §5.5). [DECISION D29]
+
+### 5.4 Load operation and native attribute insertion
+
+The Load operation inserts the group's Global Attribute definitions into the product's
+**native** attribute collection, using WooCommerce's **own** row-insertion mechanism so the
+result is structurally identical to natively-added attributes. [DECISION D29]
+
+**Mechanism (reuses the native `woocommerce_add_attribute` AJAX action):**
+
+The native "Add global attribute" flow (`add_attribute_to_list( globalAttributeId )` in
+`meta-boxes-product.js:692`) works as follows:
+1. Count existing rows: `numberOfAttributesInList = $('.product_attributes .woocommerce_attribute').length`.
+2. POST `action: woocommerce_add_attribute` with `taxonomy` (the `pa_{slug}` name), `i`
+   (the row index), `product_type`, and `security` (WC's `add-attribute` nonce).
+3. The server handler `WC_AJAX::add_attribute()` (`class-wc-ajax.php:779`) requires
+   `current_user_can( 'edit_products' )` + the `add-attribute` nonce, builds a
+   `WC_Product_Attribute` (id via `wc_attribute_taxonomy_id_by_name`, name = the taxonomy,
+   `visible` default `1`, `variation` default by product type), and renders the native row
+   HTML via `html-product-attribute.php`.
+4. The JS appends the returned row to `#product_attributes .product_attributes`, runs
+   `show_and_hide_controls()`, `init_select_controls()` (select2 init),
+   `update_attribute_row_indexes()` (re-indexes `attribute_position`), expands the row,
+   triggers `woocommerce_added_attribute`, and calls `jQuery.maybe_disable_save_button()`.
+[WC 11.3.1 SOURCE — meta-boxes-product.js:692, class-wc-ajax.php:779]
+
+**GPA Load reuses this exact mechanism:**
+
+1. GPA admin JS fetches the group's ordered `pa_{slug}` list (REST, §5.3).
+2. For **each** attribute (in the group's order), GPA JS calls the **native**
+   `woocommerce_add_attribute` AJAX action (reusing WC's `add-attribute` nonce, which is
+   already localized on the product edit screen) with the correct `taxonomy` and an
+   incrementing `i` (continuing from the current row count).
+3. GPA JS appends each returned row, re-indexes, initializes select controls, and refreshes
+   the save button state — the same post-processing the native flow performs.
+4. The inserted rows are **structurally identical** to natively-added Global Attribute
+   rows (same markup, same hidden `attribute_names[i]` / `attribute_position[i]`, same
+   `attribute_values[i][]` term multiselect). [DECISION D29]
+
+**Consequences:**
+
+- The loaded attributes appear in the native attribute list and are edited/saved with the
+  **native** controls. [DECISION D29]
+- **No parallel data structure** is created; the rows live in the native
+  `#product_attributes .product_attributes` container. [DECISION D29]
+- **The admin must select values and save** for the attributes to persist (see §6.2 — the
+  native save discards attribute rows with no values). [REQ]
+- **Capability:** the native `woocommerce_add_attribute` handler requires `edit_products`;
+  the Load operation is therefore only available to users with that capability (consistent
+  with the native "Add global" control). [REQ]
+- **Exact row insertion and index handling** (including how `i` is computed when multiple
+  rows are added in sequence, and select2 re-initialization) must be confirmed against the
+  live WC 11.3.1 admin in Phase 2B. [2B-VERIFY]
+
+### 5.5 Duplicate handling
+
+- **A Global Attribute already present on the product is not added again.** Before
+  inserting a row for a group attribute, GPA JS checks whether a row for that `pa_{slug}`
+  already exists in `.product_attributes` (by the row's `data-taxonomy` attribute). If it
+  exists, the attribute is **skipped** (not duplicated). [REQ]
+- This mirrors the native behavior: the native "Add global" select2 **disables**
+  already-selected Global Attributes (`selectedAttributes` tracking,
+  `meta-boxes-product.js:583-597`), so the same Global Attribute cannot be added twice via
+  the native UI either. [WC 11.3.1 SOURCE]
+- **Skipped (duplicate) attributes are reported** to the admin (e.g. a notice listing which
+  group attributes were already present and therefore not re-added). [RECOMMEND]
+- **Stale references** (attribute no longer exists, §3.3) are also skipped and reported.
   [REQ]
-- The tab renders the global settings form (§9) and handles its save (nonce +
-  `edit_theme_options`). [REQ]
+- Duplicates are determined by **attribute identity** (the `pa_{slug}` taxonomy), not by
+  value. Two rows for the same Global Attribute are never created. [REQ]
 
-### 6.5 AJAX / REST strategy
+### 5.6 Multiple-group loading
 
-- **REST-first** (house rule: prefer REST over `admin-ajax.php`). [REQ]
-- Endpoints (namespaced `anishop/v1`, nonce-protected, capability-checked):
-  - `GET  /gpa/groups` — list groups (for the product-edit picker; only `publish` /
-    `draft` groups are offered — D24/U11), with optional `category` filter.
-  - `GET  /gpa/groups/{id}/values` — a group's value references.
-  - `GET  /gpa/attribute-values` — the store-wide value vocabulary (both kinds; custom
-    values from the cached aggregation, §5.2).
-- All responses are JSON via `wp_send_json_*`-equivalent REST responses; all inputs
-  sanitized/validated. [REQ]
-- **No** `admin-ajax.php` endpoints unless a specific admin-screen constraint forces it
-  (none identified). [RECOMMEND]
+- The admin can load **multiple** groups onto the same product, one Load at a time.
+  [DECISION D29]
+- Each Load appends that group's attributes (in the group's order), subject to duplicate
+  handling (§5.5): attributes already present (from a previous group load or added
+  manually) are skipped. [REQ]
+- The **combined** set of attributes from all loaded groups, plus any manually-added
+  attributes, forms the product's native attribute collection. [DECISION D29]
+- There is **no** record of which group supplied which attribute (no provenance, §3.5).
+  After loading, the attributes are indistinguishable from manually-added ones. [DECISION
+  D30]
 
-### 6.6 Save handlers (summary)
+### 5.7 Coexistence with native editing
 
-| Screen | Hook | Guard | Writes |
-|--------|------|-------|--------|
-| Group edit | `save_post_ani_gpa_group` | nonce + `edit_post` | `_ani_gpa_group_values`, `menu_order`, category terms |
-| Product edit | `woocommerce_process_product_meta` | nonce + `edit_product` + **autosave/revision guards** | `_ani_gpa_assigned_groups`, `_ani_gpa_selected_values` |
-| Settings tab | `admin_init` (or `options.php`-style) | nonce + `edit_theme_options` | Theme Mod `anishop_gpa_settings` |
+- **Loaded attributes are edited with native controls only.** The admin selects existing
+  terms, creates new values (where WooCommerce supports it), removes attributes, adds
+  attributes manually (Global or Custom), reorders attributes, and edits existing
+  attributes — all through the native WooCommerce attribute UI. [DECISION D29]
+- **GPA does not intercept or modify** the native attribute editing or saving. The native
+  `WC_Meta_Box_Product_Data::save()` / `prepare_attributes()` lifecycle is unchanged.
+  [DECISION D29] [REQ]
+- **Manually-added Global and Custom attributes coexist** with loaded attributes in the same
+  native collection and follow the same save/render path. [DECISION D29] [DECISION D32]
+- **Removing a loaded attribute** uses the native "Remove" control on the row; GPA has no
+  separate removal mechanism. [REQ]
 
-## 7. Frontend rendering pipeline
+### 5.8 Ordering preservation
 
-### 7.1 Render trigger and gating
+- **Initial insertion order:** when a group is loaded, its attributes are inserted in the
+  group's configured order (§3.2, §4.3), appended after the product's existing attribute
+  rows. [DECISION D31]
+- **Final order is controlled exclusively by the native WooCommerce interface.** The admin
+  reorders attribute rows by drag-and-drop in the native editor (the `rel`/position
+  attribute), and the native save persists the order. [DECISION D31]
+- **GPA does not impose group ordering on the frontend** and does **not** override the
+  product's native attribute order. The displayed order is the product's native attribute
+  order. [DECISION D31] [DECISION D33]
 
-- **Trigger:** the Blocksy custom layer `ani_gpa` fires
-  `blocksy:woocommerce:product:custom:layer` with `$layer` on single product pages (B1).
-  [2B-VERIFY — exact hook/registration/position]
-- **Gate (all must be true, else render nothing):**
-  1. Feature enabled (Theme Mod `anishop_gpa_settings.enabled`). [REQ]
-  2. Single product view (`is_product()`), product exists. [REQ]
-  3. `_ani_gpa_assigned_groups` is non-empty. [REQ]
-- If any gate fails → **render nothing**; the native table is **not** touched (stays
-  visible). [D17]
+---
 
-### 7.2 Resolution and rendering
+## 6. Native WooCommerce attribute editing
 
-The renderer treats stored metadata as **untrusted** and re-validates everything at render
-time (§4.4). For each group ID in `_ani_gpa_assigned_groups` (in order):
+This section documents the **verified** native save lifecycle that GPA relies on. GPA does
+not modify it; it depends on its behavior.
 
-1. **Validate the group reference** (§3.3): `get_post( $group_id )` (no post-type argument),
-   then confirm it exists, `post_type === 'ani_gpa_group'`, and status is `publish`
-   (render-permitted). If any check fails → **skip** (stale / invalid). [REQ]
-2. Group name = the CPT title. [REQ]
-3. Read `_ani_gpa_selected_values[ $group_id ]` (ordered value refs). If empty →
-   **skip the group** (no empty table, no heading or group label without rows).
-   [DECISION D27 — approved empty-group behavior, 2026-11-25]
-4. For each value ref, **re-validate against the current product** (§5.8) and resolve
-   display text:
-   - Taxonomy: `get_term( $value_id, $attribute )` (taxonomy-scoped) → confirm it is a
-     `WP_Term` in the expected taxonomy, its slug matches the stored `value`, and the term
-     is actually assigned to this product (`wc_get_product_terms()` / `get_options()`).
-     Display `term->name`. If any check fails → **skip the value**. [REQ]
-   - Custom: confirm the stored `value` still exactly matches a parsed value on the product
-     (`wc_get_text_attributes()`, §5.8). Display the stored `value` (verbatim). If it no
-     longer matches → **skip the value**. [REQ]
-5. Render **one grouped table** for the group: a header (group name) + one row per
-   **valid** resolved value. All output escaped (`esc_html` / `esc_attr`). [REQ]
+### 6.1 Native save lifecycle
 
-- **Batching:** term lookups are batched per taxonomy (collect all `value_id`s, one
-  `get_terms`/`WP_Term_Query` per taxonomy) to avoid N+1. [REQ] (R-L10)
-- **No writes:** the renderer is read-only; it never modifies product data or performs
-  destructive cleanup. [D9] [REQ]
-- **All values invalid:** if a group ends up with zero valid values after re-validation, it
-  is skipped (no empty table); if no group has any valid values, GPA renders nothing and the
-  native table stays visible (§7.3, D17). [REQ]
+- **Main product save:** `woocommerce_process_product_meta` → `WC_Meta_Box_Product_Data::save( $post_id, $post )` (`class-wc-meta-box-product-data.php:333`) → `self::prepare_attributes()` (line 339) → `$product->set_attributes( $attributes )` → `$product->save()`. [WC 11.3.1 SOURCE]
+- **AJAX "Save attributes" button:** `WC_AJAX::save_attributes()` (`class-wc-ajax.php:922`) → `create_product_with_attributes( $data )` → `WC_Meta_Box_Product_Data::prepare_attributes( $data )` → `set_attributes()` → `save()`. It is guarded by `check_ajax_referer( 'save-attributes', 'security' )` + `current_user_can( 'edit_product', $post_id )`. [WC 11.3.1 SOURCE]
+- **`prepare_attributes( $data )`** (`class-wc-meta-box-product-data.php:234`) reads `attribute_names[i]`, `attribute_values[i]`, `attribute_visibility[i]`, `attribute_variation[i]`, `attribute_position[i]`; for each row it resolves the attribute ID (via `wc_attribute_taxonomy_id_by_name` for `pa_` names), parses options (term ID list for taxonomy, `wc_get_text_attributes` for text), and builds a `WC_Product_Attribute`. [WC 11.3.1 SOURCE]
 
-### 7.3 Native table (D17)
+### 6.2 Empty attribute rows are discarded on save (verified)
 
-- **Default:** the native `shop_attributes` table **remains visible**. GPA renders its
-  grouped tables **independently** (in the summary custom layer). [DECISION D17]
-- **Optional hide:** a Theme Mod setting (`hide_native_table`) can hide the native table
-  **only when** the setting is on **and** GPA actually produced **valid** renderable content
-  for the current product — i.e. at least one group passed group-reference validation (§3.3)
-  **and** at least one value passed product-specific re-validation (§5.8) and was rendered.
-  Stale or invalid GPA metadata (deleted groups, removed terms, values no longer on the
-  product) does **not** count as renderable content and must **not** trigger the hide.
-  An assigned group with **no** selected values (or no currently valid selected values)
-  does **not** count as renderable GPA content either. [DECISION D27]
-  Mechanism: the `woocommerce_display_product_attributes` filter returns `array()` (the
-  template guard `if ( ! $product_attributes ) { return; }` then suppresses the table).
-  This is **non-destructive** (display-only; `_product_attributes` is untouched).
-  [DECISION D17] [STATIC CODE EVIDENCE — see §8.3]
-- **Fallback (D17):** if GPA has **no** valid assigned groups / selected values /
-  renderable content — including the case where all stored GPA data is stale or invalid —
-  the native table **must not** disappear. [DECISION D17]
+- **`prepare_attributes()` skips rows with no values:** `if ( empty( $options ) ) { continue; }` (`class-wc-meta-box-product-data.php`). An attribute row whose `attribute_values[i]` is empty (no terms selected for a Global Attribute, or an empty textarea for a Custom Attribute) is **not** included in the saved attribute set. [WC 11.3.1 SOURCE]
+- **Consequence for GPA Load:** when a group is loaded, the inserted rows have **no values** selected. If the admin saves the product **without** selecting values, those rows are **discarded** by the native save (they are not persisted to `_product_attributes`). The attributes persist **only** once the admin selects at least one value (term) for each and saves. [REQ]
+- This is **equivalent to the native workflow**: a Global Attribute added manually via "Add global" with no values selected is likewise discarded on save. GPA's loaded rows behave exactly like native rows. [DECISION D29]
+- **The admin must be informed** (UI hint) that loaded attributes require values to be selected before saving in order to persist. [RECOMMEND]
 
-### 7.4 Empty / error states
+### 6.3 "Save attributes" button enable/disable behavior (unverified — Phase 2B)
 
-- **No groups / no values / all stale** → GPA renders nothing; native table visible.
-  [D17]
-- **Assigned group with no selected values** (or no currently valid selected values) →
-  no table, no heading, no group label is rendered for it; it does not count as
-  renderable GPA content for the D17 native-table hide. [DECISION D27]
-- **Partially stale** (some values/groups missing) → render what is valid; skip the rest.
-  Never crash, never render a broken row. [RECOMMEND] (R-L5)
-- **Exception safety:** the renderer wraps resolution in a guard so a failure degrades to
-  "render nothing" (native table intact), and logs via `error_log` when
-  `WP_DEBUG`. [RECOMMEND]
+- **Static source evidence (WC 11.3.1):** `jQuery.maybe_disable_save_button()`
+  (`assets/js/admin/meta-boxes.js:33`) disables `button.save_attributes` (adds `disabled`
+  class + `aria-disabled`) when **any** non-optional field within `.product_attributes` is
+  empty. `jQuery.is_attribute_or_variation_empty()` (`meta-boxes.js:5`) skips fields with
+  the `optional_attribute_or_variation_data` class, the `checkbox` class, or matching
+  `[class*=search__field]`; for a `select` it is empty when no option is `:selected`; for
+  other inputs it is empty when `!val()`. It is bound to `change` on
+  `select.attribute_values`, `keyup` on `input, textarea` within `#product_attributes`,
+  and runs once on load. [WC 11.3.1 SOURCE — STATIC CODE EVIDENCE]
+- **Implication (static):** a freshly-loaded Global Attribute row (no terms selected) has
+  an empty `select.attribute_values`, so the "Save attributes" button is expected to be
+  **disabled** until the admin selects at least one value. [STATIC CODE EVIDENCE]
+- **This behavior is treated as UNVERIFIED for architectural purposes.** Per the task, the
+  runtime behavior of the Save Attributes button when an attribute row has no value is an
+  **unverified technical question**. The architecture **does not** depend on it. It must be
+  confirmed against the live WC 11.3.1 admin in Phase 2B (including whether GPA's
+  programmatically-inserted rows trigger the same enable/disable logic, and whether the
+  main product save is affected). [2B-VERIFY]
 
-### 7.5 Frontend JavaScript
+---
 
-- **None required** for the core render (the tables are server-rendered). [RECOMMEND]
-- The only possible frontend JS is the (unresolved) "View Attribute" button interaction
-  (D18) — kept isolated; see §8.5. No JS framework. [REQ]
+## 7. Attribute ordering
 
-### 7.6 Markup and styling contract
+### 7.1 In-group order (initial insertion)
 
-- Wrapper: `<div class="ani-gpa-wrap">`; one `<table class="ani-gpa-table">` per group;
-  group name in a `<caption>`/header row; values in `<tbody>` rows. [RECOMMEND]
-- **RTL-first** (Anishop is Persian RTL): logical properties / RTL-aware spacing;
-  verified on real mobile (iPhone 12 Pro) in Phase 4. [REQ]
-- **House style** (DESIGN.md): Vazirmatn; accent `#2872FA`; radii 2/4px; flat (borders +
-  whitespace, no heavy shadows); colors only from the approved palette. [REQ]
-- **Table style / colors** are driven by the Theme Mod settings (§9) via CSS custom
-  properties on `.ani-gpa-wrap`. [RECOMMEND]
-## 8. Blocksy integration contract
+- The order of attributes **within a group** is configurable (drag-and-drop in the group
+  editor) and persisted in `_ani_gpa_group_attributes` (array order). [DECISION D31]
+- This order determines the **initial insertion sequence** when the group is loaded: the
+  group's attributes are appended to the product's attribute list in that order. [DECISION
+  D31]
 
-### 8.1 Custom layer (B1)
+### 7.2 Final order (native control)
 
-GPA renders via a **Blocksy custom layer** (the selected B1 direction). Precedent in the
-child theme: `anishop-buy-box` (`anishop_buy_box_insert_layer` +
-`anishop_buy_box_render_layer`) and `anishop-inline-variations` key-features.
-[STATIC CODE EVIDENCE]
+- The **final** attribute order on an individual product is controlled **exclusively** by
+  the native WooCommerce Product Data → Attributes interface (drag-and-drop reordering of
+  rows; persisted by the native save via `attribute_position`). [DECISION D31]
+- **Global ordering of GPA groups** (ordering the groups relative to each other) is **not**
+  a required feature. [DECISION D31]
+- GPA **does not** impose group ordering on the frontend and **does not** override the
+  product's native attribute order. [DECISION D31] [DECISION D33]
 
-- **Layout insertion:** filter `blocksy:woocommerce:product-single:layout` to insert
-  `array( 'id' => 'ani_gpa', 'enabled' => true )` at the configured position. [2B-VERIFY]
-- **Render:** action `blocksy:woocommerce:product:custom:layer` fires with `$layer` for
-  layers that have no built-in renderer; GPA renders when `$layer['id'] === 'ani_gpa'`.
-  [2B-VERIFY]
-- **Why B1:** independent markup, configurable placement, reduced coupling to the native
-  WC attribute table, consistency with the existing child-theme architecture, no Blocksy
-  Pro dependency. [DECISION D16]
-- **NOT yet runtime-verified.** The exact hook signature, registration mechanism, and
-  render position must be confirmed against the installed Blocksy 2.1.62 with a live
-  render test in Phase 2B. [DECISION D16] [2B-VERIFY]
+---
 
-### 8.2 Native table location — CORRECTED finding (2026-11-25)
+## 8. Custom Attribute handling
 
-**The native `shop_attributes` table renders inside the "Additional information" tab, not
-in the product summary.** This corrects the Phase 1 assumption that it sits in the
-summary. [LIVE-VERIFIED 2026-11-25] [STATIC CODE EVIDENCE]
+- **Custom Attributes remain fully supported** as native WooCommerce product attributes.
+  [DECISION D32]
+- They are **not** GPA group members, are **not** loaded through GPA groups, and have **no**
+  separate GPA management workflow. [DECISION D32]
+- They are added and managed **only** through WooCommerce's native product editor (the
+  "Add new" custom-attribute control). [DECISION D32]
+- They **must receive the same frontend presentation treatment** as Global Attributes: they
+  render in the same native Additional Information tab, in the same `shop_attributes`
+  table, and are styled by the same uniform table style (§10). [DECISION D32] [DECISION D34]
+- **No custom-attribute aggregation, vocabulary discovery, or group membership** for Custom
+  Attributes exists in this architecture (the previous subsystem is superseded/obsolete,
+  D25). [DECISION D28]
+- Custom Attribute values continue to be parsed by WooCommerce's native
+  `wc_get_text_attributes()` (splits on `|` only); GPA does **not** split or normalize on
+  commas (D20 preserved). [DECISION D20]
 
-Render chain (Blocksy 2.1.62 + WC 11.3.1):
+---
+
+## 9. Frontend rendering
+
+### 9.1 Native Additional Information tab (single output mechanism)
+
+- **All** product attributes are displayed through the **standard WooCommerce/Blocksy
+  product attribute presentation** in the existing **Additional Information** tab. This
+  includes Global Attributes loaded through GPA, Global Attributes added manually, and
+  Custom Attributes added manually. [DECISION D33]
+- **The customer must not see or need to know how an attribute was added.** There is no
+  visual or structural distinction between GPA-loaded and manually-added attributes.
+  [DECISION D33]
+- **The final displayed attribute order follows the product's native WooCommerce attribute
+  order.** [DECISION D31] [DECISION D33]
+
+### 9.2 What does NOT exist (superseded)
+
+The following are **removed** from the active architecture (superseded by D33):
+
+- **No** separate GPA attribute tables.
+- **No** GPA group headings.
+- **No** GPA group-category headings.
+- **No** grouping of frontend attributes by their source group.
+- **No** separate GPA frontend renderer (the previous `render.php` is removed).
+- **No** custom Blocksy product layer for GPA attribute output (the previous B1 custom
+  layer is removed; D16 superseded).
+- **No** configurable GPA frontend location (the previous `location` setting is removed;
+  D17's hide-native-table mechanism is removed).
+- **No** native WooCommerce table suppression. The native `shop_attributes` table is the
+  **only** attribute table and is always the output mechanism. [DECISION D33]
+
+### 9.3 Render chain (verified)
+
+The native render chain (Blocksy 2.1.62 + WC 11.3.1), previously live-verified
+(2026-11-25) and re-confirmed against source for this redesign:
 
 ```
 Blocksy single-product tabs (blocksy/inc/components/woocommerce/single/tabs.php)
-  └─ "Additional information" tab
+  └─ "Additional information" tab (native WooCommerce tab via woocommerce_product_tabs)
        └─ woocommerce_product_additional_information()   [WC template function]
-            └─ wc_display_product_attributes()            [WC template function]
-                 └─ locate_template( 'single-product/product-attributes.php' )
-                      └─ <table class="shop_attributes">  (guarded by
-                         if ( ! $product_attributes ) { return; })
+            └─ wc_display_product_attributes( $product )  [wc-template-functions.php:4261]
+                 ├─ builds $product_attributes (weight/dimensions + visible attributes)
+                 ├─ array_filter( get_attributes(), 'wc_attributes_array_filter_visible' )
+                 ├─ apply_filters( 'woocommerce_display_product_attributes', … )
+                 └─ wc_get_template( 'single-product/product-attributes.php' )
+                      └─ <table class="woocommerce-product-attributes shop_attributes">
+                           (guarded by if ( ! $product_attributes ) { return; })
 ```
 
-**Implication for the integration contract:** GPA's grouped tables render in the
-**summary** (custom layer, B1), while the native table lives in the **Additional
-information tab**. They are in different regions of the page. The "hide native table"
-setting (§7.3) therefore hides the table **in the tab**, and the D17 fallback (native
-table must not disappear when GPA has no content) is naturally satisfied because GPA only
-applies the hide filter when it has renderable content. [REQ]
+- **Template markup (WC 11.3.1, template version 9.3.0):**
+  `<table class="woocommerce-product-attributes shop_attributes" aria-label="Product
+  Details">` with rows `<tr class="woocommerce-product-attributes-item
+  woocommerce-product-attributes-item--{key}">` containing
+  `<th class="woocommerce-product-attributes-item__label">` +
+  `<td class="woocommerce-product-attributes-item__value">`. [WC 11.3.1 SOURCE —
+  templates/single-product/product-attributes.php]
+- **Visibility:** only attributes with `visible = true` are shown
+  (`wc_attributes_array_filter_visible`). A loaded Global Attribute is visible by default
+  (the native `woocommerce_add_attribute` handler sets `visible = 1`). [WC 11.3.1 SOURCE]
+- **GPA performs no frontend rendering.** It only enqueues the uniform table-style CSS
+  (§10). [DECISION D33]
 
-### 8.3 Native table hide mechanism (non-destructive)
+---
 
-- **Filter:** `woocommerce_display_product_attributes` (applied inside
-  `wc_display_product_attributes()`). Returning `array()` makes the template guard
-  `if ( ! $product_attributes ) { return; }` suppress the table. [WC 11.3.1 SOURCE]
-- **Non-destructive:** display-only. `_product_attributes`, visibility flags, and
-  variation semantics are **never** modified. [D9] [D17]
-- **Condition:** applied **only** when `hide_native_table` is on **and** GPA produced
-  renderable content for the current product. [D17]
-- **Compatibility note:** `persian-woocommerce` does **not** hook the attribute display
-  path (static evidence), so this filter is not expected to conflict — but runtime
-  compatibility must still be **tested** (D19). [STATIC CODE EVIDENCE] [2B-VERIFY]
+## 10. Uniform table presentation
 
-### 8.4 Location setting
+### 10.1 Three presentation styles
 
-- The "location" setting (§9) maps to **where in the single-product layout** the `ani_gpa`
-  custom layer is inserted. Candidate anchors (from Blocksy's default single-product
-  layers): after `product_title`, after `product_price`, after `product_desc`, after
-  `product_add_to_cart`, before/after `product_meta`. [RECOMMEND]
-- The layout filter inserts `ani_gpa` relative to the chosen anchor. [2B-VERIFY — exact
-  anchor IDs and insertion index against Blocksy 2.1.62]
+GPA provides three presentation styles for the product attribute table: [DECISION D34]
 
-### 8.5 "View Attribute" button (D18) — architecturally isolated
+| Style | Behavior |
+|-------|----------|
+| `default` | Preserves the **standard WooCommerce/Blocksy appearance** (no GPA CSS applied). |
+| `minimal` | A lighter uniform style applied to the attribute table. |
+| `boxed` | A boxed/bordered uniform style applied to the attribute table. |
 
-- The reference plugin documents an optional shop-page "View Attribute" button, but its
-  exact behavior (modal / link / other) is **NOT** established by available
-  documentation. **Do not invent its behavior.** [DECISION D18]
-- **Architecture:** a single pluggable render function
-  (`ani_gpa_render_view_attribute_button()`) + a Theme Mod toggle
-  (`view_attribute_button`, default **off**). The function is a no-op stub until the
-  behavior is finalized. [DECISION D18]
-- **Isolation:** the button (and any future JS) is fully isolated from the core render
-  pipeline, so finalizing it later is a small, contained change. [DECISION D18]
-- **Phase 2B** must investigate the reference behavior sufficiently for an informed
-  decision. **Do NOT** install the reference plugin on the production Anishop site; any
-  sandbox installation requires separate explicit owner approval. [DECISION D18]
-- **Status:** [UNRESOLVED]
+### 10.2 Uniform application (provenance-independent)
 
-### 8.6 Phase 2B verification items (Blocksy)
+- The selected style applies **uniformly to ALL product attributes**, regardless of:
+  whether the attribute is Global or Custom, and whether it was loaded through GPA or
+  added manually. [DECISION D34]
+- The style **must not** depend on group membership or attribute provenance. Because there
+  is no provenance (§3.5) and no separate GPA output (§9.2), uniformity is inherent: there
+  is a single native table, and the style is applied to that table as a whole. [DECISION
+  D34]
+- The presentation must remain **lightweight** and must **not** introduce duplicate
+  attribute tables or unnecessary frontend JavaScript. [DECISION D34]
 
-| # | Item | Why |
-|---|------|-----|
-| B1-1 | Exact `blocksy:woocommerce:product:custom:layer` signature + how a custom layer is registered/enabled in Blocksy 2.1.62 | B1 not yet runtime-verified (D16). |
-| B1-2 | Exact `blocksy:woocommerce:product-single:layout` filter shape + valid anchor layer IDs + insertion index for the "location" setting | §8.4. |
-| B1-3 | Live render test: a test product with assigned groups renders the grouped tables at the chosen position (CDP + real mobile) | Confirms B1 end-to-end. |
-| B1-4 | Confirm the native table hide filter (`woocommerce_display_product_attributes`) suppresses the table in the Additional information tab without side effects | §8.3. |
-## 9. Theme Mod settings
+### 10.3 Implementation mechanism (recommended — CSS-only)
 
-### 9.1 Theme Mod key
+The **safest compatible approach** is a **CSS-only** mechanism that styles the existing
+native `shop_attributes` table, with **no** PHP rendering changes, **no** template
+overrides, **no** filters on the attribute data, and **no** frontend JavaScript.
+[RECOMMEND]
 
-- **Key:** `anishop_gpa_settings` (a single Theme Mod holding the whole settings array).
-  [RECOMMEND]
-- **Collision check — LIVE-VERIFIED 2026-11-25:**
-  - Existing `anishop_*` **Theme Mods**: `anishop_mobile_nav` · `anishop_inline_variations`
-    · `anishop_key_features_settings` · `anishop_buy_box` · `anishop_search_box`.
-  - `anishop_gpa_settings` is **NOT set** → **free to use, no collision**. [LIVE-VERIFIED
-    2026-11-25]
-  - `anishop_attribute_presentation` is an **option** (not a Theme Mod), currently set to
-    `{"pa_color":"color"}` — an attribute→presentation-type map used by an existing
-    concern. It is the **only** `anishop_*`/`%gpa%` option in the DB. GPA does **not**
-    read or write it; the name similarity is coincidental. [LIVE-VERIFIED 2026-11-25]
-    [RECOMMEND — keep distinct; do not reuse.]
+- **Mechanism:**
+  1. A single stylesheet `ani-group-product-attributes-styles.css` contains the rules for
+     `minimal` and `boxed` (the `default` style enqueues **nothing**).
+  2. The active style is scoped by a **body class** (e.g. `ani-gpa-table-style-minimal` /
+     `ani-gpa-table-style-boxed`) added via the `body_class` filter **only** on single
+     product pages **and** only when the selected style is not `default`.
+  3. The CSS rules target the native table and its rows
+     (`.shop_attributes`, `.woocommerce-product-attributes-item`,
+     `.woocommerce-product-attributes-item__label`,
+     `.woocommerce-product-attributes-item__value`) **within** the body-class scope, so
+     they apply uniformly to every attribute row.
+- **Why CSS-only is safest:**
+  - It does **not** touch the native render pipeline, the `woocommerce_display_product_attributes`
+    filter, or the template — so it cannot suppress or duplicate the table, and it cannot
+    break `persian-woocommerce` or other plugins that hook the attribute display path.
+  - It is trivially reversible (remove the body class / dequeue the CSS).
+  - It has **zero** frontend JavaScript and **zero** PHP render logic.
+  - It applies uniformly to all rows by construction (single table, scoped CSS).
+- **Constraints:**
+  - Colors are constrained to the approved house palette (DESIGN.md); the sanitizer rejects
+    out-of-palette values. [REQ]
+  - **RTL-first** (Anishop is Persian RTL): logical properties / RTL-aware spacing. [REQ]
+  - The exact selectors and the body-class scoping must be confirmed against the live
+    Blocksy 2.1.62 + WC 11.3.1 markup in Phase 2B (the table is inside the Blocksy
+    Additional Information tab wrapper). [2B-VERIFY]
+- **The implementation mechanism is not yet authorized.** This section documents the
+  recommended approach and its evidence; the final mechanism is a Phase 2B/Phase 3
+  decision. [RECOMMEND]
 
-### 9.2 Schema (versioned)
+### 10.4 Settings
 
-```php
-array(
-  'version'             => 1,            // int — schema version
-  'enabled'             => false,        // bool — master switch (default OFF)
-  'table_style'         => 'default',    // string — e.g. 'default' | 'minimal' | 'boxed'
-  'location'            => 'after_add_to_cart', // string — custom-layer anchor (§8.4)
-  'table_colors'        => array(        // object — all from the approved palette
-    'header_bg'   => '#2872FA',
-    'header_fg'   => '#FFFFFF',
-    'row_bg'      => '#FFFFFF',
-    'row_alt_bg'  => '#F2F5F7',
-    'border'      => '#E1E8ED',
-    'text'        => '#192A3D',
-  ),
-  'hide_native_table'   => false,        // bool — D17 (default: native table VISIBLE)
-  'view_attribute_button' => false,      // bool — D18 (default OFF; behavior unresolved)
-)
-```
+- The style is stored in the Theme Mod `anishop_gpa_settings` as `table_style`
+  (`default` | `minimal` | `boxed`, default `default`). [DECISION D34] [DECISION D39]
+- **There is no `location` setting** (the frontend location is fixed to the native
+  Additional Information tab) and **no `hide_native_table` setting** (the native table is
+  never hidden). [DECISION D33]
 
-- **Defaults** are safe: feature **off**, native table **visible**, View Attribute
-  **off**. A fresh install changes nothing on the frontend. [REQ]
-- **`table_colors`** values are constrained to the approved house palette (DESIGN.md);
-  the sanitizer rejects out-of-palette colors unless the owner approves an extension.
+---
+
+## 11. WooCommerce/Blocksy integration
+
+### 11.1 Admin integration (verified hooks)
+
+| Concern | Hook / API | Evidence |
+|---------|-----------|----------|
+| GPA section in Product Data → Attributes | `woocommerce_product_options_attributes` (render) | Fires at the end of the `#product_attributes` panel, inside the Attributes tab. [WC 11.3.1 SOURCE — html-product-data-attributes.php:69] |
+| Product save (unchanged, native) | `woocommerce_process_product_meta` → `WC_Meta_Box_Product_Data::save()` | GPA adds **no** product save handler. [WC 11.3.1 SOURCE] |
+| Row insertion (Load) | Native `woocommerce_add_attribute` AJAX action (`WC_AJAX::add_attribute`) | Reused by GPA Load; requires `edit_products` + `add-attribute` nonce. [WC 11.3.1 SOURCE — class-wc-ajax.php:779] |
+| Global Attribute registry | `wc_get_attribute_taxonomies()`, `wc_attribute_taxonomy_name()`, `wc_attribute_taxonomy_id_by_name()`, `wc_get_attribute()` | Group editor picker + reference validation. [WC 11.3.1 SOURCE — wc-attribute-functions.php] |
+| Group CPT admin | `save_post_ani_gpa_group` | Group save handler. [WP core API] |
+| Admin menu | `add_menu_page` on `admin_menu` | Top-level menu after Products (§12). [WP core API] |
+
+- **Preserved technical corrections from earlier phases (still applicable):**
+  - `woocommerce_product_options_attributes` is associated with the **Attributes** tab
+    (confirmed at the end of the `#product_attributes` panel). [WC 11.3.1 SOURCE]
+  - `woocommerce_product_options_general_product_data` is associated with the **General**
+    tab (GPA does **not** use it). [WC 11.3.1 SOURCE]
+  - Product type must be determined using the product object
+    (`$product->get_type()` / `is_type()`), **not** inferred from variation existence.
+    [DECISION D15 — preserved]
+  - A `product_type` taxonomy query using a slug must explicitly specify
+    `field => 'slug'` when appropriate. [Phase 1.1.1 — preserved]
+  - Do **not** infer product type from variation existence. [DECISION D15 — preserved]
+
+### 11.2 Frontend integration (native only)
+
+- GPA has **no** frontend render hook. The native render chain (§9.3) is unchanged.
+  [DECISION D33]
+- GPA's only frontend footprint is the uniform table-style CSS (§10.3): a `body_class`
+  filter (single product pages, non-`default` style only) + a conditional stylesheet
+  enqueue. [RECOMMEND]
+- **No** Blocksy custom layer, **no** `blocksy:woocommerce:product:custom:layer`, **no**
+  `blocksy:woocommerce:product-single:layout` filter. (The previous B1 integration is
+  superseded; D16.) [DECISION D33]
+
+### 11.3 `persian-woocommerce` compatibility
+
+- `persian-woocommerce` (10.0.7) must be considered in the integration design. [DECISION
+  D19]
+- The CSS-only table-style mechanism (§10.3) **reduces** (but does not eliminate) the
+  compatibility surface: it does not hook the attribute display path, so it is not expected
+  to conflict with `persian-woocommerce`'s attribute handling. [STATIC CODE EVIDENCE —
+  previous finding that persian-woocommerce does not hook the attribute display path]
+- **Runtime compatibility must still be TESTED** in Phase 2B/Phase 4 — do not claim
+  compatibility based solely on architectural assumption. [DECISION D19] [2B-VERIFY]
+
+---
+
+## 12. Admin menu placement
+
+GPA has an **independent top-level** WordPress admin menu that appears **immediately after
+the Products menu**. [DECISION D35]
+
+### 12.1 WordPress admin menu ordering mechanism (verified)
+
+- Top-level admin menus are stored in the `$menu` global, **keyed by position** and rendered
+  in position order. `add_menu_page( …, $position )` accepts a **float** position. [WP CORE
+  SOURCE]
+- **CPT menus** are added in `wp-admin/menu.php` with the position logic:
+  `$post_type_menu_position = is_int( $post_type_obj->menu_position ) ? $post_type_obj->menu_position : ++$_wp_last_object_menu;`
+  where `$_wp_last_object_menu = 25` (initialized at `wp-admin/menu.php:121`). [WP CORE
+  SOURCE — wp-admin/menu.php:121,140-142]
+  - **Important:** because the check is `is_int()`, a **float** `menu_position` on a CPT
+    falls back to the auto-increment counter. CPT menus therefore occupy **integer**
+    positions (26, 27, …) assigned in post-type processing order.
+- **The Products CPT** (`product`) registers **no** `menu_position`
+  (`class-wc-post-types.php:367-421`), so its menu position is **auto-assigned**
+  (`++$_wp_last_object_menu`), i.e. an integer ≥ 26 depending on how many CPTs are processed
+  before it. **The Products menu position is therefore NOT a fixed, reliable constant.**
+  [WC 11.3.1 SOURCE] [WP CORE SOURCE]
+- The **WooCommerce** menu is at position `55.5` (`class-wc-admin-menus.php:97`). [WC
+  11.3.1 SOURCE]
+
+### 12.2 Suitable approach (recommended)
+
+Because the Products position is auto-assigned (not fixed), the robust way to place GPA
+"immediately after Products" is to **compute the position relative to Products at runtime**:
+
+1. Register the GPA CPT with `show_in_menu => false` (no auto CPT menu). [DECISION D35]
+2. On `admin_menu` (which runs after the CPT menus are populated into `$menu`), **locate the
+   Products menu entry** in the `$menu` global (the entry whose URL is
+   `edit.php?post_type=product`) and read its position key.
+3. Add the GPA top-level menu via `add_menu_page( …, $products_position + 0.5 )` — a **float**
+   position that sorts immediately after the Products integer position and before the next
+   integer position.
+4. Add the standard submenus (All Groups, Add New) under the GPA menu.
+
+- **Why a float offset:** the menu is sorted by position; `N + 0.5` (where `N` is Products'
+  integer position) places GPA directly after Products regardless of how many CPTs are
+  registered. [WP CORE SOURCE]
+- **Collision consideration:** another plugin could theoretically use the same `N + 0.5`
+  position. Using a small fractional offset (e.g. `+ 0.1`) and verifying the live menu order
+  in Phase 2B mitigates this. The exact offset and any collision are a [2B-VERIFY] item.
+- **Alternative (rejected):** hardcoding a CPT `menu_position` integer is **not** reliable
+  because the Products position is auto-assigned and can shift if CPT registration order
+  changes. [RECOMMEND — rejected]
+
+### 12.3 Verification of the intended placement
+
+- **Phase 2B verification:** after implementation, confirm the live admin sidebar order —
+  GPA must appear immediately after Products. This can be verified by:
+  - Inspecting the rendered admin menu (visual / CDP), and/or
+  - Reading the `$menu` global order (e.g. via a read-only `wp eval` that lists top-level
+    menu positions and labels) to confirm GPA's position key is `Products_position + offset`.
+  [2B-VERIFY]
+- **Do not change the live WordPress admin menu** as part of this documentation task. [REQ]
+
+---
+
+## 13. Validation and security
+
+### 13.1 Nonces and capabilities
+
+- **Group edit save** (`save_post_ani_gpa_group`): nonce + `current_user_can( 'edit_post',
+  $post_id )`. [REQ]
+- **Group list / admin menu**: standard CPT capabilities (`edit_posts` / `edit_post` via
+  `capability_type = post` + `map_meta_cap`). No elevated capabilities granted. [REQ]
+- **Product-edit Load (REST endpoint)**: nonce (via `X-WP-Nonce`) + `permission_callback`
+  checking `current_user_can( 'edit_product', $product_id )`. [REQ]
+- **Load row insertion**: reuses the native `woocommerce_add_attribute` action, which
+  enforces `current_user_can( 'edit_products' )` + the `add-attribute` nonce. GPA does not
+  bypass these. [REQ] [WC 11.3.1 SOURCE]
+- **Settings save** (Theme Mod): nonce + `current_user_can( 'edit_theme_options' )`. [REQ]
+
+### 13.2 Input sanitization and output escaping
+
+- **Group references** (`_ani_gpa_group_attributes`): each entry sanitized to a `pa_{slug}`
+  string (`sanitize_text_field` + a `pa_` prefix + slug shape check) and validated against
+  the registry (§3.3). Unknown/invalid entries rejected. [REQ]
+- **Settings**: single sanitizer for the whole `anishop_gpa_settings` array; `table_style`
+  validated against the allowlist `default` / `minimal` / `boxed`; unknown keys dropped.
   [REQ]
-
-### 9.3 Sanitizer
-
-- **Single sanitizer** for the whole array (house pattern): one function validates and
-  sanitizes every field, returns the cleaned array, and bumps/validates `version`.
-  [REQ]
-- **Booleans — strict parsing (corrected 2026-11-25).** Do **not** use a bare `(bool)` cast:
-  `(bool) 'false' === true`, so a raw cast silently turns arbitrary non-empty strings into
-  `true`. Use a strict parser that distinguishes the three input classes:
-  - **Valid true:** `true`, `'1'`, `'true'`, `'yes'`, `'on'` (case-insensitive).
-  - **Valid false:** `false`, `'0'`, `'false'`, `'no'`, `'off'` (case-insensitive).
-  - **Invalid / ambiguous:** anything else (e.g. `'maybe'`, `''`, non-scalar) → reject the
-    field and fall back to the schema default (do **not** coerce to `true`).
-  Implementation: an explicit allowlist is the recommended mechanism. `rest_sanitize_boolean()`
-  is acceptable **only** for inputs known to originate from a REST request, and even then it
-  maps any other non-empty string to `true` (e.g. `rest_sanitize_boolean( 'yes' ) === true`),
-  so it does **not** by itself satisfy the "no arbitrary non-empty string → true" rule.
-  [REQ] [WP core API — `rest_sanitize_boolean()`, `wp-includes/rest-api.php`]
-- Strings via `sanitize_key()`/`sanitize_text_field()`; colors via a palette whitelist;
-  unknown keys dropped. [REQ]
-- **Input paths:** the settings array is written from the Appearance → Anishop → GPA
-  Settings tab (admin form POST). The sanitizer must not assume the input is a REST payload;
-  the same strict boolean parsing applies to the admin form path. [REQ]
-
-### 9.4 Save
-
-- Saved from the Appearance → Anishop → GPA Settings tab (§6.4): nonce +
-  `current_user_can( 'edit_theme_options' )` + `set_theme_mod( 'anishop_gpa_settings',
-  $sanitized )`. [REQ]
-## 10. Security, performance, compatibility, testing, module boundaries
-
-### 10.1 Security
-
-- **Nonces + capabilities on every write:**
-  - Group edit: nonce + `current_user_can( 'edit_post', $post_id )`. [REQ]
-  - Product edit: nonce + `current_user_can( 'edit_product', $post_id )` +
-    autosave/revision guards. [REQ]
-  - Settings: nonce + `current_user_can( 'edit_theme_options' )`. [REQ]
-  - REST endpoints: nonce (via `X-WP-Nonce`) + capability check in `permission_callback`.
-    [REQ]
-- **Output escaping:** all frontend output via `esc_html()` / `esc_attr()` /
+- **Strict Boolean parsing** (preserved from Phase 2A.1): if any Boolean setting is added,
+  use a strict allowlist parser — do **not** use a bare `(bool)` cast or
+  `rest_sanitize_boolean()` alone (both coerce arbitrary non-empty strings to `true`).
+  [REQ — preserved correction]
+- **Output escaping**: all admin UI output via `esc_html()` / `esc_attr()` /
   `wp_kses_post()` as appropriate. [REQ]
-- **Input sanitization:** `sanitize_text_field()`, `wp_unslash()`, palette whitelist for
-  colors, integer casts for IDs; value references validated against the group's own list
-  on save. [REQ]
-- **CPT/taxonomy capabilities:** explicit `capability_type` + `map_meta_cap`; no elevated
-  capabilities granted. [REQ]
-- **No direct DB writes** outside the WP data APIs; any raw SQL (the custom-value
-  aggregation, §5.2) is read-only and uses `$wpdb->prepare()` where parameters are
-  involved. [REQ]
-- **Error handling:** renderer degrades safely (§7.4); `error_log` under `WP_DEBUG`.
-  [RECOMMEND]
+- **No direct DB writes** outside the WP data APIs. The Global Attribute registry is read
+  via the WC functions (which use their own caching); GPA performs no raw SQL. [REQ]
 
-### 10.2 Performance
+### 13.3 Safe handling of serialized/structured data (preserved principle)
 
-- **No N+1 term queries:** batch term lookups per taxonomy in the renderer (§7.2). [REQ]
-- **Admin list pagination + batched queries** (R-L10). [REQ]
-- **Custom-value aggregation** (§5.2): a **single** raw-SQL query that **JOINs
-  `wp_posts` to `wp_postmeta`** (post type / status live on `wp_posts`, not `wp_postmeta`),
-  not a per-product object loop; parsed in PHP, **cached in a transient** and invalidated
-  on the product events listed in §5.2. [RECOMMEND]
-- **Assets:** enqueued **only** where needed — frontend CSS on single product pages (and
-  only when the feature is enabled); admin JS/CSS only on the relevant admin screens.
-  `filemtime`-based versioning (house convention). [REQ]
-- **No frontend JS** for the core render (§7.5). [RECOMMEND]
+- The group meta `_ani_gpa_group_attributes` is a **serialized array** written by GPA and
+  read by GPA. When reading it, GPA must treat it as **untrusted structured data**:
+  - Use `unserialize( $raw, array( 'allowed_classes' => false ) )` (or the metadata API)
+    and **never** rely on `maybe_unserialize()` for deserialization safety (it does not
+    restrict object instantiation — verified in WP 7.1.5, `wp-includes/functions.php:653`).
+  - **Type validation:** the result must be an `array`; anything else is rejected.
+  - **Structure validation:** each entry must be a non-empty `pa_{slug}` string; non-matching
+    entries (including `__PHP_Incomplete_Class`) are rejected.
+  - **Graceful handling:** malformed/corrupted meta is skipped (logged under `WP_DEBUG`),
+    never causing warnings/fatals.
+- **This principle is preserved from the Phase 2A.2 safe-unserialization correction**,
+  re-scoped to the data the new architecture actually stores (the group reference array).
+  The previous contract's target (`_product_attributes` raw-SQL aggregation) no longer
+  exists, but the underlying security principle (no object instantiation from untrusted
+  serialized data + type/structure validation) remains applicable wherever GPA reads
+  serialized meta. [REQ — preserved correction; see the Phase 2A.3 report]
+
+### 13.4 Error handling
+
+- The Load operation degrades safely: a failed REST fetch or a failed
+  `woocommerce_add_attribute` call surfaces an admin notice and leaves the native attribute
+  list unchanged (no partial/corrupt rows). [RECOMMEND]
+- `error_log` under `WP_DEBUG` for unexpected failures. [RECOMMEND]
+
+---
+
+## 14. Performance and caching
+
+### 14.1 Performance
+
+- **No N+1 queries:** the Global Attribute registry is read via `wc_get_attribute_taxonomies()`
+  (which is transient + object-cache backed by WooCommerce). The group editor and the Load
+  REST endpoint each read the registry **once** per request. [WC 11.3.1 SOURCE]
+- **Admin list pagination + batched queries** for the group list (R-L10). [REQ]
+- **Assets:** enqueued **only** where needed —
+  - Admin JS/CSS only on the group edit screen and the product edit screen (Attributes tab).
+  - Frontend style CSS only on single product pages **and** only when `table_style` is not
+    `default`.
+  - `filemtime`-based versioning (house convention). [REQ]
+- **No frontend JavaScript** for the core presentation (the table is native; the style is
+  CSS-only). [DECISION D34]
 - **No new plugins / frameworks / page builders.** [REQ]
 
-### 10.3 Compatibility
+### 14.2 Caching (minimal — no premature caching)
+
+- **The previous cache contracts are removed** (superseded): the custom-attribute
+  aggregation transient, its invalidation hooks, and any group-specific frontend rendering
+  cache no longer exist, because the features they served (custom-attribute aggregation,
+  GPA frontend table construction) are removed. [DECISION D28] [DECISION D33]
+- **No new GPA-specific cache is introduced** in the core architecture. The only caching in
+  play is WooCommerce's own Global Attribute registry cache (transient
+  `wc_attribute_taxonomies` + object cache), which WC invalidates on attribute
+  create/update/delete (`wc_create_attribute` / `wc_delete_attribute` call
+  `delete_transient( 'wc_attribute_taxonomies' )` +
+  `WC_Cache_Helper::invalidate_cache_group( 'woocommerce-attributes' )`). GPA relies on that
+  and adds no parallel cache. [WC 11.3.1 SOURCE]
+- **Rationale:** the new architecture has no expensive derived data to cache. The group
+  reference list is small (a handful of `pa_{slug}` strings) and read directly from post
+  meta. Introducing a cache would be premature. [REQ]
+- If a future, demonstrated performance need arises (e.g. a very large number of groups), a
+  targeted cache may be proposed and approved then. Until then, **no** GPA cache. [REQ]
+
+---
+
+## 15. Compatibility requirements
 
 - **Coexist with all 14 existing child-theme modules** (technical-conventions §2): no
-  duplicate hooks, no parallel save handlers, no changes to those modules, MD5-locked
-  files (`anishop-mobile-nav.js/.css`) untouched. [REQ]
-- **`persian-woocommerce` (10.0.7):** static evidence shows it does **not** hook the
-  attribute display path, so GPA's independent output + the native-table hide filter are
-  not expected to conflict. **Runtime compatibility must still be TESTED** (D19) — do not
-  claim compatibility from architectural assumption alone. [DECISION D19] [2B-VERIFY]
+  duplicate hooks, no parallel save handlers, no changes to those modules, MD5-locked files
+  (`anishop-mobile-nav.js/.css`) untouched. [REQ]
+- **`persian-woocommerce` (10.0.7):** runtime compatibility must be **tested** (D19). The
+  CSS-only style mechanism reduces the conflict surface but does not remove the testing
+  requirement. [DECISION D19] [2B-VERIFY]
 - **No Blocksy Pro runtime dependency.** [REQ]
 - **No modification** of WordPress core, Blocksy parent, Blocksy Companion, or WC core.
   [REQ]
-- **Persian RTL:** all frontend output RTL-first; verified on real mobile (Phase 4).
-  [REQ]
+- **WooCommerce 11.3.1:** the architecture depends on verified WC 11.3.1 behavior (the
+  `woocommerce_add_attribute` action, `prepare_attributes` discard-empty behavior, the
+  `shop_attributes` template). These must be re-confirmed in Phase 2B against the installed
+  version. [2B-VERIFY]
+- **Blocksy Free:** the frontend relies on Blocksy's native rendering of the Additional
+  Information tab (verified render chain, §9.3). No Blocksy Pro feature is used. [REQ]
+- **Persian RTL:** all admin UI and the table style are RTL-first; verified on real mobile
+  (Phase 4). [REQ]
+- **Existing catalog anomalies are tolerated** (D21): stale `product_type` term counts,
+  inconsistent `is_variation` flags, and attribute-data irregularities must not crash GPA.
+  GPA reads the registry and native attribute data defensively. [DECISION D21]
 
-### 10.4 Testing strategy
+---
+
+## 16. Testing strategy
 
 - **Fixtures (D23):** Simple **13143** (Philips OneBlade) + Variable **17028** (OnePlus 15,
   16 real variation children). Duplicates may be created. Test-only data uses the
   `GPA TEST — ` prefix. Registry: `docs/testing/test-fixtures.md`. [DECISION D23]
 - **Isolation boundary (D23):** no unrelated products, orders, inventory, pricing, global
-  settings, or production modules. Shared global attributes/terms are inspected before
-  any create/rename/delete; prefer uniquely-prefixed test terms. [DECISION D23]
-- **Coverage (Phase 4):** admin CRUD (groups, categories, settings); product metabox
-  (load one / load category / select values / sort); frontend rendering (simple +
-  variable, with/without variations, custom + taxonomy attributes); RTL; desktop +
-  **real mobile** (iPhone 12 Pro via Live Link — CDP success is not sufficient);
-  empty/error/stale states; native-table visible-by-default + optional hide + D17
-  fallback; `persian-woocommerce` coexistence; module regression (all 14 modules).
+  settings, or production modules. Shared global attributes/terms are inspected before any
+  create/rename/delete; prefer uniquely-prefixed test attributes/terms. [DECISION D23]
+- **Coverage (Phase 4):**
+  - **Group editor:** create/edit/delete groups; add/remove Global Attributes; drag-and-drop
+    ordering; save validation (invalid/stale references rejected); empty group (no
+    attributes) is a valid state.
+  - **Product Load:** load one group; load multiple groups; duplicate handling (attribute
+    already present is skipped); stale reference skipped + reported; loaded rows are
+    structurally identical to native rows; admin selects values + saves → attributes
+    persist in `_product_attributes`; admin saves without values → rows discarded (native
+    behavior).
+  - **Native coexistence:** manually-added Global and Custom attributes coexist with loaded
+    attributes; native reordering works; native remove works; no GPA-specific behavior
+    distinguishes loaded from manual attributes.
+  - **Frontend:** all attributes (GPA-loaded, manual Global, Custom) render in the native
+    Additional Information tab in native order; `default` style = native appearance;
+    `minimal` / `boxed` styles apply uniformly to all rows; no duplicate tables; no group
+    headings.
+  - **Admin menu:** GPA top-level menu appears immediately after Products.
+  - **RTL + Persian** (all UI surfaces); desktop + **real mobile** (iPhone 12 Pro via Live
+    Link — CDP success is not sufficient).
+  - **`persian-woocommerce`** coexistence (D19).
+  - **Module regression** (all 14 existing child-theme modules).
+  - **Security:** nonce/capability enforcement on group save, Load REST endpoint, and
+    settings save; output escaping; safe unserialization of group meta.
   [REQ]
 - **Provenance labels** on every test result (real-mobile vs CDP vs static). [REQ]
 
-### 10.5 Module boundaries
-
-- **All new code** in `inc/ani-group-product-attributes/` + `assets/` + `languages/`
-  (§1.3). One new `require_once` in `functions.php`. [REQ]
-- **No** modification of existing modules, Blocksy core, WC core, or the parent theme.
-  [REQ]
-- **Data ownership (A1):** GPA owns its CPT, taxonomy, product meta, and Theme Mod. It
-  **reads** native WC attribute data but **never writes** it (D9). [DECISION D9] [DECISION
-  D22]
-- **Rollback:** deactivating the module = removing the `require_once` (and optionally
-  deleting the CPT/taxonomy/meta). No destructive migration is required because GPA never
-  modifies native data. [RECOMMEND]
-
 ---
 
-## 11. Phase 2B verification checklist
+## 17. Phase 2B implementation checklist
 
 Phase 2B (runtime verification) must confirm every **[2B-VERIFY]** item before Phase 3
-implementation. Consolidated list. **All items below are pending** — none has been
-executed or verified as of this document (Phase 2A.2, 2026-11-25).
+implementation. The checklist is organized by category. **All items are pending** — none
+has been executed or verified as of this document (Phase 2A.3, 2026-11-25).
 
-| # | Item | Section |
-|---|------|---------|
-| B1-1 | Exact `blocksy:woocommerce:product:custom:layer` signature + custom-layer registration/enabled mechanism in Blocksy 2.1.62 | §8.1, §8.6 |
-| B1-2 | Exact `blocksy:woocommerce:product-single:layout` filter shape + valid anchor layer IDs + insertion index for the "location" setting | §8.4, §8.6 |
-| B1-3 | Live render test: a test product with assigned groups renders the grouped tables at the chosen position (CDP + real mobile) | §8.6 |
-| B1-4 | Confirm the native-table hide filter (`woocommerce_display_product_attributes`) suppresses the table in the Additional information tab without side effects | §8.3, §8.6 |
-| B1-5 | `persian-woocommerce` runtime compatibility: GPA output + native-table hide coexist correctly (D19) | §8.3, §8.6, §10.3 |
-| B1-6 | Confirm the product-edit integration hooks (`woocommerce_product_options_attributes` render + `woocommerce_process_product_meta` save) fire as expected in the live admin | §6.3 |
-| B1-7 | Confirm the custom-value aggregation query (§5.2) returns correct distinct values on the live catalog and the transient invalidation works | §5.2, §10.2 |
-| B1-8 | Investigate the reference "View Attribute" button behavior sufficiently for an informed decision (D18) — **no** production install; sandbox install needs separate owner approval | §8.5 |
-| B1-9 | Group post retrieval + post-type validation: confirm the `get_post( $id )` → exists → `post_type === 'ani_gpa_group'` → status sequence works as specified (no post-type argument passed to `get_post`) | §3.3, §7.2 |
-| B1-10 | Group-status policy (U11, decided — D24): confirm `publish` and `draft` groups are accepted at save/assignment, other statuses are rejected, and the render gate enforces `publish` only (draft groups never render) | §3.3, §7.2 |
-| B1-11 | Custom-attribute aggregation query: confirm the `wp_posts` ⋈ `wp_postmeta` JOIN (post type / status on `wp_posts`) returns correct distinct values on the live catalog | §5.2, §10.2 |
-| B1-12 | Product-status filter in the aggregation (U12, decided — D25): confirm only `publish` products contribute custom-attribute values (status filter on `wp_posts` in the JOIN); `draft` / `pending` / `private` / `future` / `trash` products contribute none | §5.2 |
-| B1-13 | Safe unserialization of `_product_attributes` (decided contract): confirm the actual metadata retrieval + unserialization path; confirm object instantiation is prevented (`allowed_classes => false` — `maybe_unserialize()` alone does **not** provide this); confirm malformed / corrupted serialized data is safely rejected (no warnings, no fatals, no uncontrolled processing); confirm the resulting array structure is validated before processing; confirm invalid records are excluded from the aggregation | §5.2 |
-| B1-14 | Cache invalidation coverage: confirm the transient is invalidated on product create / update / delete / trash / restore, and identify import / bulk / programmatic write paths that bypass `save_post_product` | §5.2 |
-| B1-15 | Global (taxonomy) attribute matching: confirm a group value matches a product only via term ID + taxonomy identity + actual product term membership (`wc_get_product_terms()` / `get_options()`) | §5.8 |
-| B1-16 | Custom attribute matching: confirm a group value matches a product only via exact attribute-name identity + exact parsed-value identity (`wc_get_text_attributes()`) | §5.8 |
-| B1-17 | Attribute-name and value-identity rules: confirm byte-for-byte name match, exact value match, and that no splitting / normalization on `|` / `،` / `,` occurs (D20) | §5.8 |
-| B1-18 | Strict taxonomy-specific term validation: confirm `get_term( $id, $taxonomy )` rejects missing / wrong-taxonomy / slug-inconsistent terms, and that a term from another taxonomy is never accepted | §5.8 |
-| B1-19 | Strict Boolean parsing: confirm the settings sanitizer rejects ambiguous input and does not coerce arbitrary non-empty strings to `true` (allowlist / `rest_sanitize_boolean()` behavior) | §9.3 |
-| B1-20 | Save-time validation: confirm the product save handler validates group reference + tier A + tier B + term identity and persists only the accepted subset; confirm a group may be assigned with no selected values (valid administrative state, not rejected); confirm stale / invalid submitted selections are rejected (U13/D26) | §4.2, §4.4 |
-| B1-21 | Render-time validation: confirm the renderer re-verifies group reference, term / value identity, and product membership, and excludes stale / invalid values; confirm a group with no (valid) selected values produces no table, no heading, and no empty rows; confirm rendering is read-only (no metadata modification, no cleanup) | §4.4, §7.2 |
-| B1-22 | Stale selected-value lifecycle (U13, decided — D26): confirm stale values are ignored at render, rejected at the next save, and retained in storage until an explicit valid save replaces the selection set; confirm no destructive auto-cleanup and no metadata modification by the renderer | §4.4 |
-| B1-23 | Native table visibility: confirm the native `shop_attributes` table stays visible when GPA content is absent, when all stored GPA data is stale / invalid, or when assigned groups have no selected values, and is hidden only when valid renderable content exists and the setting permits | §7.3, §8.3 |
+**Legend:**
+- **[CONFIRMED]** — a confirmed architectural requirement (must be implemented as specified).
+- **[VERIFIED]** — API behavior verified against installed source (re-confirm at runtime).
+- **[2B-VERIFY]** — requires Phase 2B source/runtime verification before implementation.
+- **[OPEN]** — an implementation decision that remains open.
+
+### 17.1 GPA group CPT and admin menu
+
+| # | Item | Type |
+|---|------|------|
+| B2-1 | Register CPT `ani_gpa_group` per §2.3 (`show_in_menu => false`, `supports => ['title']`, `capability_type => post` + `map_meta_cap`, `rewrite => false`). | [CONFIRMED] |
+| B2-2 | Add the GPA top-level admin menu immediately after Products via `add_menu_page` with a runtime-computed float position (§12.2); confirm the live sidebar order. | [2B-VERIFY] |
+| B2-3 | Confirm the Products menu position at runtime (read the `$menu` global) and that the chosen offset places GPA directly after it with no collision. | [2B-VERIFY] |
+
+### 17.2 Group editor
+
+| # | Item | Type |
+|---|------|------|
+| B2-4 | Group list table (title, attribute count, status, date) with pagination. | [CONFIRMED] |
+| B2-5 | Group edit: Global Attribute picker sourced from `wc_get_attribute_taxonomies()` (labels + `pa_{slug}` references); add/remove; drag-and-drop ordering. | [CONFIRMED] |
+| B2-6 | Group save handler (`save_post_ani_gpa_group`): nonce + `edit_post` cap; sanitize + validate references (§3.3); persist ordered `_ani_gpa_group_attributes`. | [CONFIRMED] |
+| B2-7 | Reference validation: `taxonomy_exists( $ref )` + `wc_attribute_taxonomy_id_by_name( $ref ) > 0`; reject/flag invalid; de-duplicate. | [VERIFIED] (APIs) / [2B-VERIFY] (runtime) |
+| B2-8 | Stale-reference flagging in the group editor (attribute renamed/deleted since last save). | [CONFIRMED] |
+| B2-9 | Empty group (no attributes) is a valid save state. | [CONFIRMED] |
+
+### 17.3 Product Data → Attributes integration
+
+| # | Item | Type |
+|---|------|------|
+| B2-10 | Render the GPA section via `woocommerce_product_options_attributes` (inside the Attributes tab, after the native rows + Save button). | [VERIFIED] (hook location) |
+| B2-11 | UI-only "Create group for this product" toggle (no persisted flag). | [CONFIRMED] |
+| B2-12 | Group `<select>` listing `publish` groups only. | [CONFIRMED] |
+| B2-13 | Load REST endpoint (`anishop/v1/gpa/groups/{id}/attributes`): nonce + `edit_product` cap; returns the ordered `pa_{slug}` list (validated). | [CONFIRMED] |
+| B2-14 | Load row insertion reuses the native `woocommerce_add_attribute` AJAX action (reusing WC's `add-attribute` nonce); confirm the exact `i` index computation for sequential multi-row insertion and select2 re-initialization against live WC 11.3.1. | [2B-VERIFY] |
+| B2-15 | Duplicate handling: skip a group attribute whose `pa_{slug}` row already exists (by `data-taxonomy`); report skipped attributes. | [CONFIRMED] |
+| B2-16 | Stale-reference handling on Load: skip + report. | [CONFIRMED] |
+| B2-17 | Multiple-group loading: each Load appends its attributes (subject to duplicate handling). | [CONFIRMED] |
+| B2-18 | Confirm loaded rows are structurally identical to native rows (markup, hidden `attribute_names[i]` / `attribute_position[i]`, `attribute_values[i][]`). | [2B-VERIFY] |
+
+### 17.4 Native editing and save behavior
+
+| # | Item | Type |
+|---|------|------|
+| B2-19 | Confirm the native save discards attribute rows with no values (`prepare_attributes` `empty( $options )` skip) and that loaded rows persist only after values are selected. | [VERIFIED] (source) / [2B-VERIFY] (runtime) |
+| B2-20 | Confirm the "Save attributes" button enable/disable behavior when a loaded row has no value (whether GPA-inserted rows trigger `maybe_disable_save_button`); the architecture does **not** depend on this. | [2B-VERIFY] |
+| B2-21 | Confirm native reordering, remove, and manual add (Global + Custom) coexist with loaded attributes without GPA interference. | [2B-VERIFY] |
+| B2-22 | Confirm the final displayed attribute order follows the product's native attribute order. | [CONFIRMED] |
+
+### 17.5 Frontend and uniform table styles
+
+| # | Item | Type |
+|---|------|------|
+| B2-23 | Confirm all attributes (GPA-loaded, manual Global, Custom) render in the native Additional Information tab via the verified render chain (§9.3). | [VERIFIED] (chain) / [2B-VERIFY] (runtime) |
+| B2-24 | Confirm the CSS-only table-style mechanism: body-class scoping + conditional enqueue; `default` enqueues nothing; `minimal` / `boxed` apply uniformly to all rows. | [2B-VERIFY] |
+| B2-25 | Confirm no duplicate tables, no group headings, no GPA-specific frontend output. | [CONFIRMED] |
+| B2-26 | Confirm the exact CSS selectors against live Blocksy 2.1.62 + WC 11.3.1 markup (table inside the Blocksy Additional Information tab wrapper). | [2B-VERIFY] |
+
+### 17.6 Compatibility and regression
+
+| # | Item | Type |
+|---|------|------|
+| B2-27 | `persian-woocommerce` runtime compatibility (D19): the CSS-only style + native render coexist correctly. | [2B-VERIFY] |
+| B2-28 | WooCommerce 11.3.1 re-confirmation of the depended-on behaviors (`woocommerce_add_attribute`, `prepare_attributes`, `shop_attributes` template). | [2B-VERIFY] |
+| B2-29 | Blocksy Free compatibility (native Additional Information tab rendering). | [2B-VERIFY] |
+| B2-30 | Regression: all 14 existing child-theme modules remain functional; no duplicate hooks / parallel save handlers. | [CONFIRMED] |
+| B2-31 | Security: nonce/capability enforcement (group save, Load REST, settings save); output escaping; safe unserialization of `_ani_gpa_group_attributes`. | [CONFIRMED] |
+| B2-32 | RTL + Persian presentation (admin + frontend); real-mobile verification (iPhone 12 Pro). | [CONFIRMED] |
+
+### 17.7 Open implementation decisions
+
+| # | Item | Type |
+|---|------|------|
+| B2-33 | Group categories: confirm with the owner whether the feature is in scope (ROADMAP §1.2 vs the clarified vision). If in scope, define the taxonomy + "load all groups of a category" action. | [OPEN] |
+| B2-34 | Group status policy: confirm the "only `publish` groups are loadable" policy (reassessed from D24/U11). | [OPEN] |
+| B2-35 | Table-style visual design: finalize the `minimal` / `boxed` CSS within the house palette. | [OPEN] |
+| B2-36 | Admin menu fractional offset (e.g. `+0.1` vs `+0.5`) after collision check. | [OPEN] |
 
 ---
 
-## 12. Owner decisions and unresolved items
+## 18. Open technical questions and verification requirements
 
-This section distinguishes **resolved owner decisions** (ratified 2026-11-25, Phase
-2A.2) from **open items** still awaiting owner ratification. Resolved items are recorded
-as [DECISION] with their final policy; open items retain their existing status.
+### 18.1 Open questions (require owner input)
 
-### 12.1 Resolved owner decisions (ratified 2026-11-25 — Phase 2A.2)
+| # | Question | Status |
+|---|----------|--------|
+| Q1 | **Group categories** — are they in scope? (ROADMAP §1.2 lists them; the clarified Phase 2A.3 vision does not mention them.) The core architecture is independent of them. | [UNRESOLVED] (B2-33) |
+| Q2 | **Group status policy** — confirm "only `publish` groups are loadable" (reassessed from D24/U11; the old publish/draft-assignable + publish-only-render policy no longer applies because there is no assignment or GPA rendering). | [UNRESOLVED] (B2-34) |
+| Q3 | **Table-style visual design** — finalize the `minimal` / `boxed` CSS within the house palette. | [OPEN] (B2-35) |
+| Q4 | **Admin menu fractional offset** — confirm the offset after the Phase 2B collision check. | [OPEN] (B2-36) |
 
-| # | Item | Status | Final policy |
-|---|------|--------|--------------|
-| U11 | Group-status policy: which post statuses may be *assigned* to a product at save time (vs the render-time `publish` gate) | [DECISION D24] | `publish` and `draft` groups may be selected and assigned to products; groups with any other status are rejected for new assignments / saved references. Only `publish` groups render on the frontend; draft groups never appear publicly, even if their IDs exist in product metadata. (§3.3) |
-| U12 | Custom-value aggregation: which product statuses contribute values to the admin picker | [DECISION D25] | Only products with `post_status = 'publish'` contribute custom-attribute values to the store-wide vocabulary; all other statuses (at minimum `draft`, `pending`, `private`, `future`, `trash`) are excluded. The status filter is applied on `wp_posts` in the JOIN. No catalog cleanup or migration. (§5.2) |
-| U13 | Stale selected-value lifecycle: ignored-at-render + retained-in-storage (no auto-cleanup) | [DECISION D26] | Stale values are ignored at render (never rendered; never make a group renderable; never suppress the native table), rejected at save (only accepted valid selections are persisted), and retained in storage until an explicit valid save replaces the selection set. Rendering is read-only; no automatic background cleanup or migration. (§4.4) |
+### 18.2 Phase 2B verification requirements (consolidated)
 
-### 12.2 Open items (awaiting owner ratification)
+The following must be verified at runtime in Phase 2B before Phase 3 implementation (all
+currently **pending**):
 
-| # | Item | Status | Needed from owner |
-|---|------|--------|-------------------|
-| U1 | "View Attribute" button behavior (modal / link / other) | [UNRESOLVED] (D18) | Final decision after Phase 2B investigation (B1-8). |
-| U2 | CPT menu placement (own top-level menu vs under a parent) | [RECOMMEND] | Confirm the recommended own top-level menu. |
-| U3 | Group edit: global order via `menu_order` (page-attributes) | [RECOMMEND] | Confirm. |
-| U4 | Product-edit GPA section placement (Attributes tab) | [RECOMMEND] | Confirm. |
-| U5 | "Create group for this product" toggle persistence (UI-only vs persisted flag) | [RECOMMEND] | Confirm UI-only interpretation. |
-| U6 | Custom-value aggregation strategy (single raw-SQL + transient) | [RECOMMEND] | Confirm (performance-critical). |
-| U7 | `table_style` options set (`default` / `minimal` / `boxed`) | [RECOMMEND] | Confirm the style variants. |
-| U8 | `location` anchor options set | [RECOMMEND] | Confirm the allowed positions. |
-| U9 | Theme Mod key `anishop_gpa_settings` (distinct from the `anishop_attribute_presentation` option) | [RECOMMEND] | Confirm. |
-| U10 | Empty-group rendering (skip vs render empty header) | [RECOMMEND — confirmed by D27, 2026-11-25] | Confirmed: skip; no empty tables or headings (§4.2, §7.2, §7.4). |
+1. **Load row insertion** — the exact `i` index computation for sequential multi-row
+   insertion via the native `woocommerce_add_attribute` action, and select2
+   re-initialization of the inserted rows (B2-14, B2-18).
+2. **Save Attributes button** — the enable/disable behavior when a loaded row has no value,
+   and whether GPA-inserted rows trigger `maybe_disable_save_button` (B2-20). The
+   architecture does **not** depend on this.
+3. **Native save discard** — confirm loaded rows persist only after values are selected
+   (B2-19).
+4. **Admin menu position** — the live Products position and that the chosen offset places
+   GPA immediately after it with no collision (B2-2, B2-3, B2-36).
+5. **CSS-only table style** — the exact selectors and body-class scoping against live
+   Blocksy 2.1.62 + WC 11.3.1 markup (B2-24, B2-26).
+6. **`persian-woocommerce` compatibility** — runtime coexistence of the CSS-only style +
+   native render (B2-27, D19).
+7. **WooCommerce 11.3.1 re-confirmation** — the depended-on behaviors
+   (`woocommerce_add_attribute`, `prepare_attributes`, `shop_attributes` template) (B2-28).
+8. **Blocksy Free compatibility** — native Additional Information tab rendering (B2-29).
+9. **Native coexistence** — reordering, remove, and manual add (Global + Custom) coexist
+   with loaded attributes (B2-21).
 
-## 13. Evidence appendix
+### 18.3 Explicitly NOT open (resolved by the redesign)
 
-### 13.1 Live-verified (2026-11-25) — attribute name / option formats
+- The "View Attribute" shop-page button (U1/D18) is **deferred / out of scope** — the new
+  vision has no separate GPA frontend output, so there is no clear requirement for it. See
+  the Phase 2A.3 report. [DECISION D36]
+- The three-tier A/B/C value model, `_ani_gpa_assigned_groups`, `_ani_gpa_selected_values`,
+  custom-attribute aggregation, the GPA frontend renderer, native-table suppression, the
+  Blocksy custom layer, and the GPA frontend location setting are **superseded/obsolete** —
+  they are not open questions; they are removed. See `.clinerules/decisions.md`.
 
-Via `wp eval-file` on the live site (read-only), `WC_Product::get_attributes()`:
+---
 
-**Simple fixture 13143 (custom attributes only):**
-```
-id=0 | taxonomy=0 | name=[نوع اصلاح]        | options=[برش مستقیم / خشک وخیس]
-id=0 | taxonomy=0 | name=[سری قابل شستشو]   | options=[دارد]
-id=0 | taxonomy=0 | name=[طراحی]           | options=[ارگونومیک]
-id=0 | taxonomy=0 | name=[مدت شارژ کامل]    | options=[8 ساعت]
-id=0 | taxonomy=0 | name=[مدت زمان استفاده] | options=[45 دقیقه]
-id=0 | taxonomy=0 | name=[سری جایگزین]      | options=[QP210,QP220, QP230]
-id=0 | taxonomy=0 | name=[سایر امکانات]     | options=[سبک و کم حجم برای مسافرت]
-id=0 | taxonomy=0 | name=[محتویات جعبه]     | options=[یک عدد تیغه اضافه, 3 عدد شانه برای صورت, ...]
-```
-→ Custom attribute `name` = **raw Persian** (not URL-encoded); `options` = **raw string**
-(single value; commas **not** split — D20).
+## 19. Evidence appendix
 
-**Variable fixture 17028 (taxonomy attributes):**
-```
-TYPE: variable
-id=2 | taxonomy=1 | name=[pa_color]           | options=[4300,4288,4287,4286]   (term IDs)
-id=3 | taxonomy=1 | name=[pa_memory-capacity] | options=[4291,4292,4301,4293]   (term IDs)
---- variation attributes ---
-varkey=[pa_color]           => [green,white,gold,black]        (term slugs)
-varkey=[pa_memory-capacity] => [128gb,256gb,512-gb,64gb]       (term slugs)
-```
-→ Taxonomy attribute `name` = `pa_{slug}`; `get_attributes()` options = **term IDs**;
-`get_variation_attributes()` options = **term slugs**. This dual format is why the value
-reference stores both `value` (slug) and `value_id` (term ID). (§2.4)
+All evidence below was gathered on **2026-11-25** by **static source inspection** of the
+installed WordPress 7.1.5 / WooCommerce 11.3.1 / Blocksy 2.1.62 (read-only). No live
+database writes, no site changes, no fixture changes.
 
-### 13.2 Static code evidence (2026-11-25)
+### 19.1 Global Attribute registry (WC 11.3.1)
 
-- **Native table render chain** (Blocksy 2.1.62 + WC 11.3.1):
-  - `blocksy/inc/components/woocommerce/single/tabs.php` — "Additional information" tab.
-  - `woocommerce/includes/wc-template-functions.php` — `woocommerce_product_additional_information()` → `wc_display_product_attributes()`.
-  - `woocommerce/templates/single-product/product-attributes.php` — `<table class="shop_attributes">`, guarded by `if ( ! $product_attributes ) { return; }`.
-  - `wc_display_product_attributes()` applies the `woocommerce_display_product_attributes` filter → returning `array()` suppresses the table. (§8.2, §8.3)
-- **`read_attributes()`** (`woocommerce/includes/data-stores/class-wc-product-data-store-cpt.php:613`): taxonomy → `options = wc_get_object_terms( $product_id, $name, 'term_id' )`; custom → `options = wc_get_text_attributes( $meta_value['value'] )`; `set_name( $meta_value['name'] )`. (§5)
-- **`persian-woocommerce`** source tree: no hooks on the attribute display path
-  (`wc_display_product_attributes` / `woocommerce_product_attribute` / the
-  `shop_attributes` template). (§8.3) [STATIC CODE EVIDENCE]
-- **Child-theme precedents:** `anishop-buy-box` (custom layer insert + render),
-  `anishop-inline-variations` (presentation-layer precedent), `anishop-hero` (CPT
-  registration), `anishop-mobile-nav` (owns the Appearance → Anishop page +
-  `anishop_admin_tabs` filter). (§1.3, §6.4, §8.1)
+- **`wc_get_attribute_taxonomies()`** (`woocommerce/includes/wc-attribute-functions.php:55`):
+  returns the Global Attribute registry as an array of objects indexed by `id:{attribute_id}`,
+  each with `attribute_id`, `attribute_name` (slug), `attribute_label`, `attribute_type`,
+  `attribute_orderby`, `attribute_public`. Backed by the
+  `woocommerce_attribute_taxonomies` table, cached in the transient
+  `wc_attribute_taxonomies` + the `woocommerce-attributes` object cache group. [WC 11.3.1
+  SOURCE]
+- **`wc_attribute_taxonomy_name( $attribute_name )`** (line 148): returns `pa_{slug}`.
+  [WC 11.3.1 SOURCE]
+- **`wc_attribute_taxonomy_name_by_id( $attribute_id )`** (line 186): returns the taxonomy
+  name from the ID (empty string if not found). [WC 11.3.1 SOURCE]
+- **`wc_attribute_taxonomy_id_by_name( $name )`** (line 199): returns the attribute ID from
+  the name (`0` if not found). [WC 11.3.1 SOURCE]
+- **`wc_get_attribute( $id )`** (line 509): returns a `stdClass` with `id`, `name` (label),
+  `slug` (`pa_{slug}`), `type`, `order_by`, `has_archives`. [WC 11.3.1 SOURCE]
+- **Rename migration** (`wc_create_attribute` / `wc_update_attribute`, lines 548/735): on a
+  slug change, WC updates `wp_term_taxonomy.taxonomy` (`pa_{old}` → `pa_{new}`), the
+  `order_pa_{old}` termmeta, the `_product_attributes` meta of all products using the
+  attribute (renaming the key + `name`), and the variation meta keys
+  (`attribute_pa_{old}` → `attribute_pa_{new}`). After a rename, `pa_{old}` no longer
+  exists. [WC 11.3.1 SOURCE — lines 656-714]
+- **Delete** (`wc_delete_attribute`, line 777): deletes the registry row, deletes all terms
+  of `pa_{slug}`, and unregisters the taxonomy. After deletion, `pa_{slug}` no longer
+  exists. [WC 11.3.1 SOURCE]
+- **Cache invalidation:** `wc_create_attribute` / `wc_delete_attribute` call
+  `delete_transient( 'wc_attribute_taxonomies' )` +
+  `WC_Cache_Helper::invalidate_cache_group( 'woocommerce-attributes' )`. [WC 11.3.1 SOURCE]
 
-### 13.3 Carried-over (Phase 1 / 1.1)
+### 19.2 Product attribute editor (WC 11.3.1)
+
+- **Panel template** (`includes/admin/meta-boxes/views/html-product-data-attributes.php`):
+  panel `#product_attributes`; toolbar with "Add new" (`add_custom_attribute`) +
+  `select.wc-attribute-search` (select2 for Global Attributes); rows from
+  `$product_object->get_attributes( 'edit' )`; "Save attributes" button
+  (`type="button"`, `disabled` by default); and `do_action( 'woocommerce_product_options_attributes' )`
+  at line 69 (end of the panel, inside the Attributes tab). [WC 11.3.1 SOURCE]
+- **Row template** (`html-product-attribute.php`):
+  `<div data-taxonomy="…" class="woocommerce_attribute wc-metabox postbox closed {taxonomy}
+  {pa_name}" rel="{position}">`. [WC 11.3.1 SOURCE]
+- **Row inner** (`html-product-attribute-inner.php`): for taxonomy attributes — hidden
+  `attribute_names[i]` (value = `pa_{slug}`), hidden `attribute_position[i]`,
+  `select.attribute_values[i][]` (term multiselect), and `checkbox`-classed visible/variation
+  checkboxes; for custom attributes — text `attribute_names[i]` + textarea
+  `attribute_values[i]`. [WC 11.3.1 SOURCE]
+
+### 19.3 Native save lifecycle (WC 11.3.1)
+
+- **Main product save:** `woocommerce_process_product_meta` →
+  `WC_Meta_Box_Product_Data::save( $post_id, $post )`
+  (`includes/admin/meta-boxes/class-wc-meta-box-product-data.php:333`) →
+  `self::prepare_attributes()` (line 339) → `set_attributes()` → `save()`. [WC 11.3.1 SOURCE]
+- **AJAX "Save attributes":** `WC_AJAX::save_attributes()`
+  (`includes/class-wc-ajax.php:922`) → `create_product_with_attributes( $data )` →
+  `prepare_attributes( $data )` → `set_attributes()` → `save()`. Guarded by
+  `check_ajax_referer( 'save-attributes', 'security' )` +
+  `current_user_can( 'edit_product', $post_id )`. [WC 11.3.1 SOURCE]
+- **`prepare_attributes( $data )`** (`class-wc-meta-box-product-data.php:234`): reads
+  `attribute_names[i]`, `attribute_values[i]`, `attribute_visibility[i]`,
+  `attribute_variation[i]`, `attribute_position[i]`; resolves the attribute ID via
+  `wc_attribute_taxonomy_id_by_name` for `pa_` names; parses options (term ID list for
+  taxonomy, `wc_get_text_attributes` for text); and **skips rows with empty options**
+  (`if ( empty( $options ) ) { continue; }`). [WC 11.3.1 SOURCE]
+
+### 19.4 Native "Add global attribute" mechanism (WC 11.3.1)
+
+- **JS** (`assets/js/admin/meta-boxes-product.js:692`, `add_attribute_to_list`): counts
+  existing rows, POSTs `action: woocommerce_add_attribute` with `taxonomy`, `i`,
+  `product_type`, `security` (the `add-attribute` nonce), appends the returned row HTML to
+  `#product_attributes .product_attributes`, runs `show_and_hide_controls()`,
+  `init_select_controls()`, `update_attribute_row_indexes()`, expands the row, triggers
+  `woocommerce_added_attribute`, and calls `jQuery.maybe_disable_save_button()`. [WC 11.3.1
+  SOURCE]
+- **Server handler** (`WC_AJAX::add_attribute()`, `includes/class-wc-ajax.php:779`):
+  `check_ajax_referer( 'add-attribute', 'security' )` +
+  `current_user_can( 'edit_products' )`; requires `taxonomy` + `i`; builds a
+  `WC_Product_Attribute` (id via `wc_attribute_taxonomy_id_by_name`, name = the taxonomy,
+  `visible` default `1`, `variation` default by product type); renders
+  `html-product-attribute.php`. [WC 11.3.1 SOURCE]
+- **Duplicate prevention** (`meta-boxes-product.js:583-597`): the native UI tracks
+  `selectedAttributes` (already-added Global taxonomies) and disables them in the
+  "Add global" select2. [WC 11.3.1 SOURCE]
+- **Row re-indexing** (`meta-boxes-product.js:567`, `update_attribute_row_indexes`): sets
+  each row's `attribute_position` to its DOM index. [WC 11.3.1 SOURCE]
+
+### 19.5 "Save attributes" button enable/disable (WC 11.3.1 — static)
+
+- **`jQuery.maybe_disable_save_button()`** (`assets/js/admin/meta-boxes.js:33`): disables
+  `button.save_attributes` (adds `disabled` + `aria-disabled`) when any non-optional field
+  within `.product_attributes` is empty. [WC 11.3.1 SOURCE — STATIC CODE EVIDENCE]
+- **`jQuery.is_attribute_or_variation_empty()`** (`meta-boxes.js:5`): skips fields with the
+  `optional_attribute_or_variation_data` class, the `checkbox` class, or matching
+  `[class*=search__field]`; a `select` is empty when no option is `:selected`; other inputs
+  are empty when `!val()`. Bound to `change` on `select.attribute_values`, `keyup` on
+  `input, textarea` within `#product_attributes`, and runs once on load. [WC 11.3.1 SOURCE —
+  STATIC CODE EVIDENCE]
+- **Runtime behavior is UNVERIFIED** and is a Phase 2B item (B2-20); the architecture does
+  not depend on it. [2B-VERIFY]
+
+### 19.6 Frontend render chain (WC 11.3.1 + Blocksy 2.1.62)
+
+- **`wc_display_product_attributes( $product )`**
+  (`woocommerce/includes/wc-template-functions.php:4261`): builds `$product_attributes`
+  (weight/dimensions + visible attributes via
+  `array_filter( get_attributes(), 'wc_attributes_array_filter_visible' )`), applies the
+  `woocommerce_display_product_attributes` filter, and renders
+  `single-product/product-attributes.php`. [WC 11.3.1 SOURCE]
+- **Template** (`woocommerce/templates/single-product/product-attributes.php`, template
+  version 9.3.0): `<table class="woocommerce-product-attributes shop_attributes"
+  aria-label="Product Details">` with rows `<tr class="woocommerce-product-attributes-item
+  woocommerce-product-attributes-item--{key}">` containing
+  `<th class="woocommerce-product-attributes-item__label">` +
+  `<td class="woocommerce-product-attributes-item__value">`; guarded by
+  `if ( ! $product_attributes ) { return; }`. [WC 11.3.1 SOURCE]
+- **Blocksy tabs** (`blocksy/inc/components/woocommerce/single/tabs.php`): renders the
+  product tabs via the `woocommerce_product_tabs` filter, calling each tab's callback; the
+  "Additional information" tab callback runs
+  `woocommerce_product_additional_information()` → `wc_display_product_attributes()`.
+  [STATIC CODE EVIDENCE — re-confirmed 2026-11-25; previously LIVE-VERIFIED 2026-11-25]
+- **`persian-woocommerce`** (10.0.7): static evidence (previous finding) shows it does not
+  hook the attribute display path. Runtime compatibility still to be tested (D19). [STATIC
+  CODE EVIDENCE] [2B-VERIFY]
+
+### 19.7 Admin menu ordering (WP core + WC 11.3.1)
+
+- **`$_wp_last_object_menu = 25`** (`wp-admin/menu.php:121`). [WP CORE SOURCE]
+- **CPT menu position** (`wp-admin/menu.php:140-142`):
+  `is_int( $post_type_obj->menu_position ) ? $post_type_obj->menu_position :
+  ++$_wp_last_object_menu` — a float `menu_position` falls back to the auto-increment
+  counter. [WP CORE SOURCE]
+- **Products CPT** (`woocommerce/includes/class-wc-post-types.php:367-421`): registers
+  **no** `menu_position` → auto-assigned integer position (≥ 26). [WC 11.3.1 SOURCE]
+- **WooCommerce menu** (`woocommerce/includes/admin/class-wc-admin-menus.php:97`): position
+  `55.5`. [WC 11.3.1 SOURCE]
+- **`add_menu_page`** accepts a float position; the `$menu` global is keyed by position and
+  rendered in position order. [WP CORE SOURCE]
+
+### 19.8 Carried-over (Phase 1 / 1.1 / 2A)
 
 - Live environment: WP 7.1.5 · PHP 8.3.36 · WooCommerce 11.3.1 · Blocksy 2.1.62 ·
   blocksy-companion 2.1.62 · persian-woocommerce 10.0.7 · blocksy-child 1.1.1.
@@ -1228,59 +1408,16 @@ reference stores both `value` (slug) and `value_id` (term ID). (§2.4)
 - Attribute data landscape: 328 products with attributes; 13 taxonomy attributes; 399
   distinct custom names; 1521 custom entries; 294 multi-value (comma) custom attributes;
   **0** pipe-separated custom attributes. [Phase 1 research]
-- Decisions D9, D14–D23 (see `.clinerules/decisions.md`).
-
-### 13.4 API verifications for Phase 2A.1 corrections (2026-11-25)
-
-Verified against the installed source (read-only):
-
-- **`WC_Product_Attribute::get_options()`** (`woocommerce/includes/class-wc-product-attribute.php`):
-  returns the raw `options` array — **term IDs** (ints) for taxonomy attributes, **parsed
-  value strings** for custom attributes. `get_terms()` resolves taxonomy options to
-  `WP_Term[]` (returns `null` if not a taxonomy or the taxonomy is unregistered);
-  `get_slugs()` returns term slugs for taxonomy, options as-is for text. (§5.8)
-  [WC 11.3.1 SOURCE]
-- **`wc_get_product_terms( $product_id, $taxonomy, $args = array() )`**
-  (`woocommerce/includes/wc-term-functions.php:226`): takes a product **ID** + taxonomy
-  slug; returns `array()` if the taxonomy does not exist; backed by `wp_get_post_terms()`
-  (cached). Used for product-membership checks. (§5.8) [WC 11.3.1 SOURCE]
-- **`get_term( $term, $taxonomy = '', $output = OBJECT, $filter = 'raw' )`**
-  (`wp-includes/taxonomy.php:977`): when `$taxonomy` is supplied, the term is resolved via
-  `WP_Term::get_instance( $term, $taxonomy )`, which returns the term **only if it belongs
-  to that taxonomy** (otherwise `null`); an invalid taxonomy returns `WP_Error`. This is the
-  basis for taxonomy-scoped term validation. (§3.3, §5.8) [WP core API]
-- **`rest_sanitize_boolean( $value )`** (`wp-includes/rest-api.php:1539`): a string
-  `'false'` or `'0'` (case-insensitive) → `false`; **everything else** → `(bool) $value`,
-  so any other non-empty string (e.g. `'yes'`) → `true`. Confirms a bare `(bool)` cast and
-  `rest_sanitize_boolean()` both coerce arbitrary non-empty strings to `true`; hence the
-  strict allowlist recommendation. (§9.3) [WP core API]
-- **`get_post( $post = null, $output = OBJECT, $filter = 'raw' )`**
-  (`wp-includes/post.php:1138`): the second parameter is an **output format**, not a
-  post-type constraint — confirming the corrected group-reference sequence. (§3.3)
-  [WP core API]
-
-### 13.5 API verifications for Phase 2A.2 corrections (2026-11-25)
-
-Verified against the installed source (read-only):
-
-- **`maybe_unserialize( $data )`** (`wp-includes/functions.php:653`, WP 7.1.5):
-  `if ( is_serialized( $data ) ) { return @unserialize( trim( $data ) ); }` — the
-  internal `unserialize()` call is made **without** the `allowed_classes` option, i.e.
-  with the default `allowed_classes => true`, so objects embedded in a serialized blob
-  **are instantiated**. `maybe_unserialize()` therefore does **not** provide an
-  `allowed_classes` restriction and must not be relied on for deserialization safety.
-  (§5.2) [WP core API]
-- **`is_serialized( $data, $strict = true )`** (`wp-includes/functions.php:674`):
-  returns `true` only for strings that are (strictly) serialized data; used as the shape
-  gate before the guarded `unserialize()` in the §5.2 contract. [WP core API]
-- **`unserialize( $data, array( 'allowed_classes' => false ) )`** (PHP core, PHP 8.3.36):
-  with `allowed_classes => false`, no class is instantiated; embedded objects are
-  returned as `__PHP_Incomplete_Class` instances (no constructor / `__wakeup` /
-  `__unserialize` execution). Combined with the `is_array()` + structure validation in
-  the §5.2 contract, this guarantees no object instantiation from untrusted serialized
-  metadata. [PHP core]
+- `maybe_unserialize()` (WP 7.1.5, `wp-includes/functions.php:653`) does **not** restrict
+  object instantiation (default `allowed_classes`); `unserialize( …, [ 'allowed_classes' =>
+  false ] )` does. [Phase 2A.2 — preserved principle, §13.3]
+- `get_post( $id )` second parameter is an output format, not a post-type constraint.
+  [Phase 2A.1 — preserved where group posts are retrieved]
+- `rest_sanitize_boolean()` coerces arbitrary non-empty strings to `true`; strict allowlist
+  parsing required for Booleans. [Phase 2A.1 — preserved, §13.2]
 
 ---
 
-*End of Phase 2A architecture specification. This document is the contract for Phase 2B
-(runtime verification) and Phase 3 (implementation). It authorizes no implementation.*
+*End of Phase 2A architecture specification (Phase 2A.3 native-template redesign). This
+document is the contract for Phase 2B (runtime verification) and Phase 3 (implementation).
+It authorizes no implementation.*

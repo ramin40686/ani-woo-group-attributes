@@ -8,6 +8,12 @@
 > integration points that Phase 3 (implementation) will build against. It implements
 > **nothing** and does **not** authorize implementation.
 >
+> **Phase 2A.1 correction (2026-11-25):** corrected the `get_post()` group-reference
+> sequence (§3.3), the custom-attribute aggregation query (posts ⋈ postmeta JOIN, §5.2),
+> the group-value ↔ product-attribute matching contract (§5.7, §5.8), taxonomy-scoped term
+> validation (§5.8), strict Boolean sanitization (§9.3), and save/render revalidation
+> (§4.4, §7.2). See `reports/2026-11-25-phase-2a-1-architecture-corrections.md`.
+>
 > **Architecture direction:** **A1** (data ownership: CPT + taxonomy + product meta +
 > Theme Mod) + **B1** (Blocksy custom-layer rendering). Axis **C** (delimiter
 > normalization) is **DEFERRED** (D20).
@@ -232,10 +238,21 @@ Anishop has **0** pipe-separated custom attributes, so each custom attribute yie
 exactly **one** value (the whole string). GPA does **not** split on commas. [DECISION D20]
 [LIVE-VERIFIED 2026-11-25]
 
-**Resolution at render time** (see §7.2):
-- Taxonomy: `get_term( $value_id )` → display `term->name` (current name). If the term no
-  longer exists → skip the value (stale; degrade gracefully, R-L5).
-- Custom: display `$value` directly (it is the display text).
+**A value reference is a *candidate*, not a product assertion.** A value reference
+identifies a value in the **group vocabulary** (tier A, §5.7). It does **not** by itself
+prove that the value exists on a given product. Product-specific validity — "does this
+value actually exist on the *current* product?" — is a **separate** enforcement, applied at
+both save and render (§5.7, §5.8, §4.4, §7.2). Membership in a group alone is **not**
+sufficient to render a value on a product. [REQ]
+
+**Resolution at render time** (see §7.2) — *only after* the value has passed
+product-specific validation (§5.8):
+- Taxonomy: `get_term( $value_id, $expected_taxonomy )` (taxonomy-scoped lookup, §5.8) →
+  display `term->name` (current name). If the term is missing, is not a `WP_Term`, or does
+  not belong to the expected taxonomy → skip the value (stale/invalid; degrade gracefully,
+  R-L5).
+- Custom: display `$value` directly (it is the display text), **only if** it still matches
+  a value actually present on the product (§5.8).
 
 ## 3. Product-to-group data contract
 
@@ -262,6 +279,44 @@ exactly **one** value (the whole string). GPA does **not** split on commas. [DEC
   time** (validated on save). [REQ]
 - No duplicates. [REQ]
 - The array is always an array (never a scalar); empty array = no groups assigned. [REQ]
+
+### 3.3 Group reference validation (correct `get_post()` usage)
+
+A group ID stored in `_ani_gpa_assigned_groups` must be validated as a **valid group
+reference** before it is trusted — at save time (§4.4) and again at render time (§7.2).
+The validation is a **sequence**, not a single call:
+
+1. `$post = get_post( $group_id );` — retrieve the post. **Do not** pass a post type as the
+   second argument: `get_post( $id, 'ani_gpa_group' )` is **incorrect** — the second
+   parameter of `get_post()` is an *output format* (`OBJECT` / `ARRAY_A` / `ARRAY_N`),
+   **not** a post-type constraint. [REQ — WP core API]
+2. **Existence:** if `$post` is `null` → the reference is **stale** (the group was deleted).
+   Reject / skip it.
+3. **Post type:** verify `$post->post_type === 'ani_gpa_group'`. A post that exists but has
+   a different `post_type` is **not** a group — reject it. `get_post()` does **not** enforce
+   the expected post type; GPA must check it explicitly. [REQ]
+4. **Status:** verify the post status is permitted **for the operation** (see below).
+5. Reject any reference that fails steps 2–4.
+
+**Three distinct cases (do not conflate):**
+
+| Case | Meaning | Handling |
+|------|---------|----------|
+| Valid group reference | exists, `post_type = ani_gpa_group`, status permitted | accepted |
+| Exists, wrong post type | `get_post()` returns a post, but `post_type !== 'ani_gpa_group'` | rejected (not a group) |
+| Exists, disallowed status | correct post type, but status not permitted for the operation | rejected for that operation |
+
+**Permitted status per operation:**
+- **Render (§7.2):** a group renders only when its status is `publish` (consistent with
+  §2.1: "A group is renderable only when `publish`"). [RECOMMEND]
+- **Save / assignment (§4.4):** the set of statuses that may be *assigned* to a product is
+  **not** fixed by an approved decision. [UNRESOLVED — U11] The recommended default is to
+  allow `publish` (and optionally `draft`) at assignment time and re-check at render; the
+  exact allowed set is an owner decision. Do **not** invent a policy here.
+
+This sequence is the single source of truth for "is this a usable group?"; both the save
+handler and the renderer call it (or an equivalent) rather than re-implementing the checks.
+[REQ]
 
 ---
 
@@ -292,10 +347,21 @@ array(
 
 ### 4.2 Validation (on save)
 
-- Keys must be group IDs present in `_ani_gpa_assigned_groups`. [REQ]
-- Each value reference must be a **member of that group's** `_ani_gpa_group_values`
-  (matched by `attribute` + `value_id` for taxonomy, `attribute` + `value` for custom).
-  Non-members are dropped. [REQ]
+Save-time validation enforces **both** group membership **and** product-attribute
+membership. A value reference is accepted only if it passes **all** of the following;
+anything that fails is dropped (not persisted as a valid selection). [REQ]
+
+- **Group key:** the key must be a group ID present in `_ani_gpa_assigned_groups` **and** a
+  valid group reference (§3.3: exists, `post_type = ani_gpa_group`, status permitted for
+  save). [REQ]
+- **Group membership (tier A):** the value reference must be a member of that group's
+  `_ani_gpa_group_values` (matched by `attribute` + `value_id` for taxonomy,
+  `attribute` + `value` for custom). Non-members are dropped. [REQ]
+- **Product-attribute membership (tier B):** the value reference must also match a value
+  **actually present on the current product** (§5.8). Group membership alone is **not**
+  sufficient — a value that exists in the group but not on the product is dropped. [REQ]
+- **Term / taxonomy identity (taxonomy values):** the term ID must resolve to a `WP_Term`
+  in the expected taxonomy, and the stored slug must be consistent with it (§5.8). [REQ]
 - Value references are re-serialized in the admin's chosen order. [REQ]
 - Groups assigned but with **no** selected values are allowed (they render as empty —
   see §7.4). [RECOMMEND]
@@ -307,6 +373,45 @@ array(
   rendered). [RECOMMEND]
 - **Selected value whose term was deleted** → that value is skipped; the rest of the
   group renders. [RECOMMEND] (R-L5)
+
+### 4.4 Save-time vs render-time revalidation
+
+GPA treats stored metadata as **untrusted input** at both boundaries. The two boundaries
+are distinct and both are mandatory. [REQ]
+
+**Save-time validation** (product-edit save handler, §6.6): validate *incoming* data before
+persisting. For each submitted group ID and value reference:
+- Verify the group reference (§3.3): exists, `post_type = ani_gpa_group`, status permitted
+  for save.
+- Verify group membership (tier A) **and** product-attribute membership (tier B) per §4.2.
+- Verify taxonomy / term identity (§5.8) for taxonomy values; exact value identity (§5.8)
+  for custom values.
+- Persist **only** the accepted subset, in the admin's chosen order. Rejected references are
+  dropped, not stored. [REQ]
+
+**Render-time validation** (frontend renderer, §7.2): treat *stored* metadata as potentially
+stale or invalid — it may have been valid when saved, but the product, its attributes, the
+group, or the terms may have changed since. Before rendering, re-verify **everything**:
+- Verify each group reference (§3.3) and its render-permitted status (`publish`).
+- Verify the group / value relationship (the value is still in the group's vocabulary).
+- Verify taxonomy + term identity (§5.8) for taxonomy values.
+- Verify custom attribute identity + exact value match (§5.8).
+- Verify each selected value **still exists on the current product** (tier B).
+- **Exclude** any invalid or stale value / group from the output. [REQ]
+
+**Rendering must not:** assume previously saved metadata is permanently valid; modify product
+metadata; or perform destructive cleanup. [REQ]
+
+**Stale selected-value lifecycle** [RECOMMEND — U13]: a selected value that no longer exists
+on the product is **ignored at render** (not displayed) and **rejected at the next save**
+(not re-persisted as valid), but is **retained in storage** until an explicit save rewrites
+the array. GPA performs **no** destructive automatic cleanup (consistent with D21 — no
+catalog cleanup). The exact "ignored vs retained" default is an owner-confirmation item (U13).
+
+**No valid values remain:** if, after render-time validation, a group has no valid values (or
+no group has any), GPA renders nothing for that group / product and the native table stays
+visible (§7.3, D17). [REQ]
+
 ## 5. Global vs custom attribute resolution
 
 GPA **must** support both global (taxonomy) and custom (product-specific) attributes; the
@@ -323,8 +428,10 @@ appropriate WooCommerce API. [DECISION D14]
   admin value picker. [REQ]
 - **Value source (per product):** `wc_get_product_terms( $product_id, 'pa_{slug}' )` or
   the term IDs from `get_attributes()[name]->get_options()`. [WC 11.3.1 SOURCE]
-- **Display text:** the **term name** (`get_term( $value_id )->name`), resolved at render
-  time so renames are reflected. [RECOMMEND]
+- **Display text:** the **term name**, resolved at render time so renames are reflected.
+  Resolve with a **taxonomy-scoped** lookup — `get_term( $value_id, 'pa_{slug}' )` — so the
+  term is verified to belong to the expected taxonomy. A bare `get_term( $value_id )` does
+  **not** prove taxonomy membership (see §5.8). [RECOMMEND]
 - **Value reference:** `attribute = pa_{slug}`, `value = term slug`, `value_id = term ID`.
 
 ### 5.2 Custom (product-specific) attributes
@@ -339,11 +446,61 @@ appropriate WooCommerce API. [DECISION D14]
   string. [DECISION D20] [LIVE-VERIFIED 2026-11-25]
 - **Value source (store-wide vocabulary, for the admin picker):** there is **no** central
   registry of custom attribute values. GPA aggregates distinct custom attribute
-  name → value pairs from the catalog. Strategy: a **single** raw-SQL query over
-  `wp_postmeta` (`meta_key = '_product_attributes'`, `post_type = 'product'`), parse each
-  blob in PHP, build a distinct `name => [values]` map, and **cache** it in a transient
-  (invalidated on product save). This avoids the per-product object loop that R-L10 warns
-  against. [RECOMMEND] — see §10.2 for the performance contract.
+  name → value pairs from the catalog. [RECOMMEND]
+
+  **Query architecture (corrected 2026-11-25).** The aggregation reads
+  `_product_attributes` from the postmeta table **and** restricts to product posts. Because
+  `wp_postmeta` has **no** `post_type` column, the query **must JOIN the posts table** to
+  filter by post type (and, if chosen, by post status). Conceptual shape (table names via
+  `$wpdb->posts` / `$wpdb->postmeta`; the prefix is **never** hardcoded):
+
+  ```sql
+  SELECT pm.meta_value
+  FROM {$wpdb->postmeta} AS pm
+  INNER JOIN {$wpdb->posts} AS p ON p.ID = pm.post_id
+  WHERE pm.meta_key = '_product_attributes'
+    AND p.post_type = 'product'
+    -- AND p.post_status IN ( ... )   -- see "Product-status inclusion" below
+  ```
+
+  - **Why the JOIN is required:** `post_type` (and `post_status`) live on `wp_posts`, not on
+    `wp_postmeta`. Filtering `post_type` directly on `wp_postmeta` is structurally invalid
+    (no such column) and would either error or silently match non-product meta. [REQ]
+  - **Product-status inclusion** [UNRESOLVED — U12]: which product statuses contribute
+    values to the picker is **not** fixed by an approved decision. Alternatives:
+    - **(a) `publish` only** — picker shows only values on live products. Simplest; may hide
+      values on in-progress (draft/private) products the admin is editing.
+    - **(b) all non-trashed** (`publish`, `draft`, `private`, `pending`, `future`) — picker
+      also surfaces in-progress values; broader vocabulary.
+    - **(c) all including `trash`** — not recommended; trashed products should not seed the
+      live vocabulary.
+    The exact set is an owner decision (U12). Trashed products are **not** recommended in any
+    case. [UNRESOLVED]
+  - **Safe parsing of serialized `_product_attributes`:** each `meta_value` is a
+    **serialized** PHP array. Parse with `unserialize()` **guarded** — verify the result is
+    an `array` before use. Do **not** `eval()` or `unserialize()` untrusted data without the
+    guard. [REQ]
+  - **Malformed / unexpected metadata:** if a blob fails to parse, is not an array, or has an
+    unexpected shape (missing `name`/`value` keys, non-string values), **skip that blob**
+    (and log under `WP_DEBUG`). Never let one malformed product abort the whole aggregation.
+    [REQ]
+  - **Caching:** the distinct `name => [values]` map is **cached in a transient** (single
+    key) so the expensive query runs only on cache miss. [RECOMMEND]
+  - **Cache invalidation** — the transient must be invalidated (deleted) on events that can
+    change custom attribute values. Required coverage:
+    - Product creation (`save_post_product` / `wp_insert_post` for `product`).
+    - Product update (`save_post_product`).
+    - Product deletion / trashing (`wp_trash_post`, `before_delete_post`).
+    - Product restoration (`untrash_post`).
+    - Direct changes to `_product_attributes` (covered by `save_post_product` in the normal
+      admin flow; **import / bulk-update paths** that write `_product_attributes` without
+      firing `save_post_product` must be verified). [2B-VERIFY]
+    - **Do not** attempt an exhaustive event implementation here; the above is the required
+      architectural behavior, and the exact hook coverage (especially import / bulk /
+      programmatic writes) is a Phase 2B verification item (B1-14). [2B-VERIFY]
+
+  This avoids the per-product object loop that R-L10 warns against. [RECOMMEND] — see §10.2
+  for the performance contract.
 - **Display text:** the raw value string, stored verbatim in the value reference. [REQ]
 - **Value reference:** `attribute = raw name`, `value = raw string`, `value_id = 0`.
 
@@ -383,6 +540,89 @@ appropriate WooCommerce API. [DECISION D14]
 | Store-wide values (picker) | `get_terms( pa_{slug} )` | cached catalog aggregation (transient) |
 | Per-product values | term IDs / `wc_get_product_terms()` | `wc_get_text_attributes( value )` |
 | Display text | term name (resolved by ID) | raw string (verbatim) |
+
+### 5.7 Value validity model (three tiers)
+
+GPA distinguishes **three** distinct sets of values. Conflating them is the root cause of
+incorrect frontend output, so the contract is explicit. [REQ]
+
+| Tier | Name | Definition | Source of truth |
+|------|------|------------|-----------------|
+| **A** | **Group vocabulary** | The reusable set of candidate values defined by the attribute group (`_ani_gpa_group_values`). Store-wide, shared across products. | The group's own meta. |
+| **B** | **Product attribute values** | The values **actually present** on the current WooCommerce product (its real `_product_attributes` / taxonomy terms). | The product's native WC attribute data (read-only). |
+| **C** | **Selected product values** | The subset the admin explicitly chose to display on *this* product (`_ani_gpa_selected_values`). | Product meta, but **only valid** where C ⊆ (A ∩ B). |
+
+**The validity rule:** a value may be *selected* (tier C) and *rendered* on a product only
+if it is a member of the group's vocabulary (tier A) **and** actually exists on the product
+(tier B). In set terms: **valid C ⊆ (A ∩ B)**. [REQ]
+
+**Worked example (the failure this prevents):**
+- Group "رنگ‌ها" vocabulary (A): Green, Black, White, Gold.
+- Product's actual `pa_color` values (B): Green, Black.
+- The admin may select **only** Green and Black (A ∩ B). **White and Gold must not be
+  selectable or renderable** for this product, even though they exist in the group. [REQ]
+
+**Loading a group onto a product** (§6.3): loading a group makes its vocabulary (A)
+*available as candidates* in the admin UI. It does **not** copy values onto the product and
+does **not** modify native attributes. Only values in **A ∩ B** can become valid selections
+(C). The product's existing attribute data remains the source of truth (B). [REQ]
+[DECISION D9 — presentation-only]
+
+### 5.8 Matching contract: group value ↔ actual product attribute
+
+This is the exact identity contract used at **save** (§4.2) and **render** (§7.2) to decide
+whether a value reference (tier A) is actually present on the product (tier B). It is
+per-attribute-kind. [REQ]
+
+**Taxonomy (global) attributes** — match by **term ID + taxonomy identity together** (never
+by display label alone):
+
+1. The expected taxonomy is derived from the value reference's `attribute` field, which for
+   taxonomy attributes **is** the taxonomy slug (e.g. `pa_color`). [REQ]
+2. Resolve the term with a **taxonomy-scoped** lookup: `get_term( $value_id, $attribute )`.
+   This returns a `WP_Term` **only if** the term exists **and** belongs to that exact
+   taxonomy; otherwise it returns `null` / `WP_Error`. A bare `get_term( $value_id )` is
+   **insufficient** — it does not prove taxonomy membership. [REQ — WP core API]
+3. **Consistency:** the resolved term's `slug` must equal the stored `value` (slug) field.
+   A mismatch (stale slug, or an ID pointing at a different term) is invalid. [REQ]
+4. **Product membership:** the term must actually be assigned to the current product for this
+   attribute — i.e. `$value_id` is in the product's term set for that taxonomy, obtained via
+   `wc_get_product_terms( $product_id, $attribute )` (returns `WP_Term[]`) or the term IDs
+   from `get_attributes()[ $attribute ]->get_options()`. [REQ — WC 11.3.1 SOURCE]
+5. A term belonging to **any other** taxonomy (even one sharing the same `term_id` in a
+   different `term_taxonomy`) is **not** a valid match. [REQ]
+
+**Custom (product-specific) attributes** — match by **attribute-name identity + exact value
+identity**:
+
+1. **Name identity:** the value reference's `attribute` (raw name) must equal the product's
+   custom attribute name exactly (byte-for-byte; no case-folding, no extra trimming beyond
+   what WC itself does). [REQ]
+2. **Value identity:** the value reference's `value` (raw string) must be **exactly equal**
+   to one of the product's parsed values for that attribute, where the product's values are
+   obtained by `wc_get_text_attributes( $stored_value )` — the **existing WooCommerce
+   parsing behavior** (splits on `|` only, `html_entity_decode`s, trims, drops empties).
+   [REQ — WC 11.3.1 SOURCE]
+3. **No new normalization (D20):** GPA does **not** split or normalize on `|`, Persian comma
+   `،`, or ASCII comma `,`. It uses WC's parsed values as the reference point. Anishop has 0
+   pipe-separated custom attributes, so each custom attribute yields exactly one value (the
+   whole string). [DECISION D20]
+4. If the exact matching contract for a particular edge case (e.g. entity-encoding
+   differences between the stored and parsed forms) cannot be established from the current
+   specification and verified WC APIs, it is marked [2B-VERIFY] rather than guessed.
+   [2B-VERIFY]
+
+**Handling invalid / deleted / mismatched / stale references** (applies to both kinds):
+
+| Context | Behavior |
+|---------|----------|
+| Group validation (group edit save) | A value reference whose term is missing / wrong-taxonomy / inconsistent is rejected from `_ani_gpa_group_values` (or flagged). [REQ] |
+| Product save (§4.2) | A value reference that fails the matching contract is **dropped** (not persisted as a valid selection). [REQ] |
+| Frontend render (§7.2) | A value reference that fails the matching contract is **skipped** (not rendered); the rest of the group renders. [RECOMMEND] (R-L5) |
+
+**Preserved architecture:** the Global (taxonomy) and Custom attribute architecture is
+unchanged; this section only defines the *matching / identity* contract on top of it. [REQ]
+
 ## 6. Admin integration contracts
 
 ### 6.1 CPT admin (group list / edit)
@@ -412,13 +652,17 @@ consistent with the reference plugin's placement). [RECOMMEND]
   section for this product. The actual state is the presence of
   `_ani_gpa_assigned_groups`; the toggle is not a separate persisted flag. [RECOMMEND]
   (The reference exposes this toggle; its exact persistence is not specified — flagged.)
-- **"Manage Attribute Groups" select + Load** — loads **one** group's value references
-  onto the product (adds its ID to `_ani_gpa_assigned_groups` and seeds
-  `_ani_gpa_selected_values` with the group's full value list). [REQ]
+- **"Manage Attribute Groups" select + Load** — loads **one** group onto the product: adds
+  its ID to `_ani_gpa_assigned_groups` and makes the group's vocabulary (tier A) available
+  as **candidates** in the value-selection UI. It does **not** copy values onto the product
+  and does **not** modify native attributes. Only values in **A ∩ B** (present on the
+  product, §5.7 / §5.8) can be selected; the seeded `_ani_gpa_selected_values` contains only
+  those valid candidates (or is left empty for the admin to choose). [REQ]
 - **"Load Group Categories"** — loads **all groups of a category** at once (tax_query on
-  `ani_gpa_group_cat`). [REQ]
-- **Value selection** — the admin checks/unchecks which loaded values display on the
-  product page (writes `_ani_gpa_selected_values`). [REQ]
+  `ani_gpa_group_cat`); the same A ∩ B candidate rule applies to each loaded group. [REQ]
+- **Value selection** — the admin checks/unchecks which **valid** (A ∩ B) loaded values
+  display on the product page (writes `_ani_gpa_selected_values`). Values that are in the
+  group but **not** on the product are not offered as selectable. [REQ]
 - **Per-product group sorting** — drag-and-drop reorders `_ani_gpa_assigned_groups`.
   [REQ]
 - **Integration hook:** `woocommerce_product_options_attributes` (render) +
@@ -473,36 +717,52 @@ consistent with the reference plugin's placement). [RECOMMEND]
 
 ### 7.2 Resolution and rendering
 
-For each group ID in `_ani_gpa_assigned_groups` (in order):
+The renderer treats stored metadata as **untrusted** and re-validates everything at render
+time (§4.4). For each group ID in `_ani_gpa_assigned_groups` (in order):
 
-1. Load the group (`get_post( $group_id, 'ani_gpa_group' )`). If missing or not `publish`
-   → **skip** (stale). [RECOMMEND]
+1. **Validate the group reference** (§3.3): `get_post( $group_id )` (no post-type argument),
+   then confirm it exists, `post_type === 'ani_gpa_group'`, and status is `publish`
+   (render-permitted). If any check fails → **skip** (stale / invalid). [REQ]
 2. Group name = the CPT title. [REQ]
 3. Read `_ani_gpa_selected_values[ $group_id ]` (ordered value refs). If empty →
    **skip the group** (no empty table). [RECOMMEND]
-4. For each value ref, resolve display text:
-   - Taxonomy: `get_term( $value_id )` → `term->name`; if the term is gone → **skip the
-     value**. [RECOMMEND]
-   - Custom: the stored `value` string (verbatim). [REQ]
+4. For each value ref, **re-validate against the current product** (§5.8) and resolve
+   display text:
+   - Taxonomy: `get_term( $value_id, $attribute )` (taxonomy-scoped) → confirm it is a
+     `WP_Term` in the expected taxonomy, its slug matches the stored `value`, and the term
+     is actually assigned to this product (`wc_get_product_terms()` / `get_options()`).
+     Display `term->name`. If any check fails → **skip the value**. [REQ]
+   - Custom: confirm the stored `value` still exactly matches a parsed value on the product
+     (`wc_get_text_attributes()`, §5.8). Display the stored `value` (verbatim). If it no
+     longer matches → **skip the value**. [REQ]
 5. Render **one grouped table** for the group: a header (group name) + one row per
-   resolved value. All output escaped (`esc_html` / `esc_attr`). [REQ]
+   **valid** resolved value. All output escaped (`esc_html` / `esc_attr`). [REQ]
 
 - **Batching:** term lookups are batched per taxonomy (collect all `value_id`s, one
   `get_terms`/`WP_Term_Query` per taxonomy) to avoid N+1. [REQ] (R-L10)
-- **No writes:** the renderer is read-only; it never modifies product data. [D9]
+- **No writes:** the renderer is read-only; it never modifies product data or performs
+  destructive cleanup. [D9] [REQ]
+- **All values invalid:** if a group ends up with zero valid values after re-validation, it
+  is skipped (no empty table); if no group has any valid values, GPA renders nothing and the
+  native table stays visible (§7.3, D17). [REQ]
 
 ### 7.3 Native table (D17)
 
 - **Default:** the native `shop_attributes` table **remains visible**. GPA renders its
   grouped tables **independently** (in the summary custom layer). [DECISION D17]
 - **Optional hide:** a Theme Mod setting (`hide_native_table`) can hide the native table
-  **only when** the setting is on **and** GPA actually produced renderable content.
+  **only when** the setting is on **and** GPA actually produced **valid** renderable content
+  for the current product — i.e. at least one group passed group-reference validation (§3.3)
+  **and** at least one value passed product-specific re-validation (§5.8) and was rendered.
+  Stale or invalid GPA metadata (deleted groups, removed terms, values no longer on the
+  product) does **not** count as renderable content and must **not** trigger the hide.
   Mechanism: the `woocommerce_display_product_attributes` filter returns `array()` (the
   template guard `if ( ! $product_attributes ) { return; }` then suppresses the table).
   This is **non-destructive** (display-only; `_product_attributes` is untouched).
   [DECISION D17] [STATIC CODE EVIDENCE — see §8.3]
 - **Fallback (D17):** if GPA has **no** valid assigned groups / selected values /
-  renderable content, the native table **must not** disappear. [DECISION D17]
+  renderable content — including the case where all stored GPA data is stale or invalid —
+  the native table **must not** disappear. [DECISION D17]
 
 ### 7.4 Empty / error states
 
@@ -671,8 +931,23 @@ array(
 - **Single sanitizer** for the whole array (house pattern): one function validates and
   sanitizes every field, returns the cleaned array, and bumps/validates `version`.
   [REQ]
-- Booleans via `(bool)`; strings via `sanitize_key()`/`sanitize_text_field()`; colors via
-  a palette whitelist; unknown keys dropped. [REQ]
+- **Booleans — strict parsing (corrected 2026-11-25).** Do **not** use a bare `(bool)` cast:
+  `(bool) 'false' === true`, so a raw cast silently turns arbitrary non-empty strings into
+  `true`. Use a strict parser that distinguishes the three input classes:
+  - **Valid true:** `true`, `'1'`, `'true'`, `'yes'`, `'on'` (case-insensitive).
+  - **Valid false:** `false`, `'0'`, `'false'`, `'no'`, `'off'` (case-insensitive).
+  - **Invalid / ambiguous:** anything else (e.g. `'maybe'`, `''`, non-scalar) → reject the
+    field and fall back to the schema default (do **not** coerce to `true`).
+  Implementation: an explicit allowlist is the recommended mechanism. `rest_sanitize_boolean()`
+  is acceptable **only** for inputs known to originate from a REST request, and even then it
+  maps any other non-empty string to `true` (e.g. `rest_sanitize_boolean( 'yes' ) === true`),
+  so it does **not** by itself satisfy the "no arbitrary non-empty string → true" rule.
+  [REQ] [WP core API — `rest_sanitize_boolean()`, `wp-includes/rest-api.php`]
+- Strings via `sanitize_key()`/`sanitize_text_field()`; colors via a palette whitelist;
+  unknown keys dropped. [REQ]
+- **Input paths:** the settings array is written from the Appearance → Anishop → GPA
+  Settings tab (admin form POST). The sanitizer must not assume the input is a REST payload;
+  the same strict boolean parsing applies to the admin form path. [REQ]
 
 ### 9.4 Save
 
@@ -707,9 +982,10 @@ array(
 
 - **No N+1 term queries:** batch term lookups per taxonomy in the renderer (§7.2). [REQ]
 - **Admin list pagination + batched queries** (R-L10). [REQ]
-- **Custom-value aggregation** (§5.2): a **single** raw-SQL query over `wp_postmeta`
-  (not a per-product object loop), parsed in PHP, **cached in a transient** and
-  invalidated on product save. [RECOMMEND]
+- **Custom-value aggregation** (§5.2): a **single** raw-SQL query that **JOINs
+  `wp_posts` to `wp_postmeta`** (post type / status live on `wp_posts`, not `wp_postmeta`),
+  not a per-product object loop; parsed in PHP, **cached in a transient** and invalidated
+  on the product events listed in §5.2. [RECOMMEND]
 - **Assets:** enqueued **only** where needed — frontend CSS on single product pages (and
   only when the feature is enabled); admin JS/CSS only on the relevant admin screens.
   `filemtime`-based versioning (house convention). [REQ]
@@ -778,6 +1054,21 @@ implementation. Consolidated list:
 | B1-6 | Confirm the product-edit integration hooks (`woocommerce_product_options_attributes` render + `woocommerce_process_product_meta` save) fire as expected in the live admin | §6.3 |
 | B1-7 | Confirm the custom-value aggregation query (§5.2) returns correct distinct values on the live catalog and the transient invalidation works | §5.2, §10.2 |
 | B1-8 | Investigate the reference "View Attribute" button behavior sufficiently for an informed decision (D18) — **no** production install; sandbox install needs separate owner approval | §8.5 |
+| B1-9 | Group post retrieval + post-type validation: confirm the `get_post( $id )` → exists → `post_type === 'ani_gpa_group'` → status sequence works as specified (no post-type argument passed to `get_post`) | §3.3, §7.2 |
+| B1-10 | Allowed group-status behavior: confirm which statuses are permitted at save/assignment vs render (U11) and that the render gate enforces `publish` | §3.3, §7.2 |
+| B1-11 | Custom-attribute aggregation query: confirm the `wp_posts` ⋈ `wp_postmeta` JOIN (post type / status on `wp_posts`) returns correct distinct values on the live catalog | §5.2, §10.2 |
+| B1-12 | Product-status inclusion in the aggregation: confirm the chosen status set (U12) and that trashed products are excluded | §5.2 |
+| B1-13 | Safe parsing of serialized `_product_attributes`: confirm guarded `unserialize()` + array check, and that malformed blobs are skipped without aborting the aggregation | §5.2 |
+| B1-14 | Cache invalidation coverage: confirm the transient is invalidated on product create / update / delete / trash / restore, and identify import / bulk / programmatic write paths that bypass `save_post_product` | §5.2 |
+| B1-15 | Global (taxonomy) attribute matching: confirm a group value matches a product only via term ID + taxonomy identity + actual product term membership (`wc_get_product_terms()` / `get_options()`) | §5.8 |
+| B1-16 | Custom attribute matching: confirm a group value matches a product only via exact attribute-name identity + exact parsed-value identity (`wc_get_text_attributes()`) | §5.8 |
+| B1-17 | Attribute-name and value-identity rules: confirm byte-for-byte name match, exact value match, and that no splitting / normalization on `|` / `،` / `,` occurs (D20) | §5.8 |
+| B1-18 | Strict taxonomy-specific term validation: confirm `get_term( $id, $taxonomy )` rejects missing / wrong-taxonomy / slug-inconsistent terms, and that a term from another taxonomy is never accepted | §5.8 |
+| B1-19 | Strict Boolean parsing: confirm the settings sanitizer rejects ambiguous input and does not coerce arbitrary non-empty strings to `true` (allowlist / `rest_sanitize_boolean()` behavior) | §9.3 |
+| B1-20 | Save-time validation: confirm the product save handler validates group reference + tier A + tier B + term identity and persists only the accepted subset | §4.2, §4.4 |
+| B1-21 | Render-time validation: confirm the renderer re-verifies group reference, term / value identity, and product membership, and excludes stale / invalid values | §4.4, §7.2 |
+| B1-22 | Stale selected-value behavior: confirm a value no longer on the product is ignored at render, rejected at next save, retained in storage, with no destructive auto-cleanup (U13) | §4.4 |
+| B1-23 | Native table visibility: confirm the native `shop_attributes` table stays visible when GPA content is absent **or** entirely stale / invalid, and is hidden only when valid renderable content exists and the setting permits | §7.3, §8.3 |
 
 ---
 
@@ -795,6 +1086,9 @@ implementation. Consolidated list:
 | U8 | `location` anchor options set | [RECOMMEND] | Confirm the allowed positions. |
 | U9 | Theme Mod key `anishop_gpa_settings` (distinct from the `anishop_attribute_presentation` option) | [RECOMMEND] | Confirm. |
 | U10 | Empty-group rendering (skip vs render empty header) | [RECOMMEND] | Confirm skip. |
+| U11 | Group-status policy: which post statuses may be *assigned* to a product at save time (vs the render-time `publish` gate) | [UNRESOLVED] | Decide the allowed assignment-time status set (recommended: `publish` + optionally `draft`). |
+| U12 | Custom-value aggregation: which product statuses contribute values to the admin picker (publish-only vs all non-trashed vs all) | [UNRESOLVED] | Choose the status set (recommended: publish-only or all non-trashed; never trash). |
+| U13 | Stale selected-value lifecycle: ignored-at-render + retained-in-storage (no auto-cleanup) vs other | [RECOMMEND] | Confirm the non-destructive default (ignored at render, retained until explicit save). |
 
 ## 13. Evidence appendix
 
@@ -854,6 +1148,35 @@ reference stores both `value` (slug) and `value_id` (term ID). (§2.4)
   distinct custom names; 1521 custom entries; 294 multi-value (comma) custom attributes;
   **0** pipe-separated custom attributes. [Phase 1 research]
 - Decisions D9, D14–D23 (see `.clinerules/decisions.md`).
+
+### 13.4 API verifications for Phase 2A.1 corrections (2026-11-25)
+
+Verified against the installed source (read-only):
+
+- **`WC_Product_Attribute::get_options()`** (`woocommerce/includes/class-wc-product-attribute.php`):
+  returns the raw `options` array — **term IDs** (ints) for taxonomy attributes, **parsed
+  value strings** for custom attributes. `get_terms()` resolves taxonomy options to
+  `WP_Term[]` (returns `null` if not a taxonomy or the taxonomy is unregistered);
+  `get_slugs()` returns term slugs for taxonomy, options as-is for text. (§5.8)
+  [WC 11.3.1 SOURCE]
+- **`wc_get_product_terms( $product_id, $taxonomy, $args = array() )`**
+  (`woocommerce/includes/wc-term-functions.php:226`): takes a product **ID** + taxonomy
+  slug; returns `array()` if the taxonomy does not exist; backed by `wp_get_post_terms()`
+  (cached). Used for product-membership checks. (§5.8) [WC 11.3.1 SOURCE]
+- **`get_term( $term, $taxonomy = '', $output = OBJECT, $filter = 'raw' )`**
+  (`wp-includes/taxonomy.php:977`): when `$taxonomy` is supplied, the term is resolved via
+  `WP_Term::get_instance( $term, $taxonomy )`, which returns the term **only if it belongs
+  to that taxonomy** (otherwise `null`); an invalid taxonomy returns `WP_Error`. This is the
+  basis for taxonomy-scoped term validation. (§3.3, §5.8) [WP core API]
+- **`rest_sanitize_boolean( $value )`** (`wp-includes/rest-api.php:1539`): a string
+  `'false'` or `'0'` (case-insensitive) → `false`; **everything else** → `(bool) $value`,
+  so any other non-empty string (e.g. `'yes'`) → `true`. Confirms a bare `(bool)` cast and
+  `rest_sanitize_boolean()` both coerce arbitrary non-empty strings to `true`; hence the
+  strict allowlist recommendation. (§9.3) [WP core API]
+- **`get_post( $post = null, $output = OBJECT, $filter = 'raw' )`**
+  (`wp-includes/post.php:1138`): the second parameter is an **output format**, not a
+  post-type constraint — confirming the corrected group-reference sequence. (§3.3)
+  [WP core API]
 
 ---
 

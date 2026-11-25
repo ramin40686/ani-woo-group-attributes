@@ -332,3 +332,14 @@ Work has stopped after completing the Phase 2A.1 corrections and this report, co
 and pushing the documentation, and verifying the final Git state. Awaiting the project
 owner's next instruction. No further phase or task has been started.
 
+## 19. Post-completion addendum (2026-11-25 — Phase 2A.2)
+
+This report's original completion record is preserved unchanged. For historical
+accuracy: the owner items U11, U12, and U13 that this report listed as still requiring
+owner decisions were **ratified by the project owner on 2026-11-25 during Phase 2A.2**
+(final architecture consistency fixes) and are recorded as decisions **D24 (U11)**,
+**D25 (U12)**, and **D26 (U13)** in `.clinerules/decisions.md`. The ratification
+postdates this report; nothing in this report should be read as implying that U11–U13
+were approved before Phase 2A.2. See
+`reports/2026-11-25-phase-2a-2-final-architecture-consistency.md`.
+

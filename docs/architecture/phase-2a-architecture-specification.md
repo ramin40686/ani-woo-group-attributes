@@ -14,6 +14,15 @@
 > validation (§5.8), strict Boolean sanitization (§9.3), and save/render revalidation
 > (§4.4, §7.2). See `reports/2026-11-25-phase-2a-1-architecture-corrections.md`.
 >
+> **Phase 2A.2 correction (2026-11-25):** strengthened the safe-unserialization contract
+> for `_product_attributes` (§5.2 — `allowed_classes => false`; `maybe_unserialize()`
+> alone does **not** restrict object instantiation), reconciled the empty-group behavior
+> (assignment without selected values is administratively valid; no empty frontend
+> tables — §4.2, §4.3, §7.2, §7.3, §7.4), and recorded owner decisions U11 (group status
+> policy, §3.3), U12 (publish-only aggregation, §5.2), and U13 (stale selected-value
+> lifecycle, §4.4). See
+> `reports/2026-11-25-phase-2a-2-final-architecture-consistency.md`.
+>
 > **Architecture direction:** **A1** (data ownership: CPT + taxonomy + product meta +
 > Theme Mod) + **B1** (Blocksy custom-layer rendering). Axis **C** (delimiter
 > normalization) is **DEFERRED** (D20).
@@ -172,7 +181,8 @@ Registered in `bootstrap.php` on `init` (precedent: `anishop-hero` CPT registrat
 - **Global group order** = `menu_order` (page-attributes), used as the default order when
   groups are listed/loaded. Per-product order is separate (§3.1). [RECOMMEND]
 - **No** `post_status` beyond `publish`/`draft`. A group is renderable only when
-  `publish`. [RECOMMEND]
+  `publish`; draft groups are assignable in the admin but never rendered on the
+  frontend. [DECISION D24 — U11]
 
 ### 2.2 Taxonomy `ani_gpa_group_cat`
 
@@ -306,13 +316,17 @@ The validation is a **sequence**, not a single call:
 | Exists, wrong post type | `get_post()` returns a post, but `post_type !== 'ani_gpa_group'` | rejected (not a group) |
 | Exists, disallowed status | correct post type, but status not permitted for the operation | rejected for that operation |
 
-**Permitted status per operation:**
-- **Render (§7.2):** a group renders only when its status is `publish` (consistent with
-  §2.1: "A group is renderable only when `publish`"). [RECOMMEND]
-- **Save / assignment (§4.4):** the set of statuses that may be *assigned* to a product is
-  **not** fixed by an approved decision. [UNRESOLVED — U11] The recommended default is to
-  allow `publish` (and optionally `draft`) at assignment time and re-check at render; the
-  exact allowed set is an owner decision. Do **not** invent a policy here.
+**Permitted status per operation** [DECISION D24 — U11, 2026-11-25]:
+- **Save / assignment (§4.4):** groups with status `publish` **or** `draft` may be
+  selected and assigned to products. Groups with any other status must **not** be
+  accepted for new assignments or saved references.
+- **Render (§7.2):** a group renders only when its status is `publish`. Draft groups
+  must **never** appear on the public frontend, even if their IDs exist in product
+  metadata.
+- The checks are distinct and cumulative: group **existence** (step 2), expected
+  **post type** `ani_gpa_group` (step 3), and **allowed status for the operation**
+  (step 4 — `publish`/`draft` for administration, `publish` only for rendering). A group
+  must pass all checks relevant to the operation being performed.
 
 This sequence is the single source of truth for "is this a usable group?"; both the save
 handler and the renderer call it (or an equivalent) rather than re-implementing the checks.
@@ -363,14 +377,17 @@ anything that fails is dropped (not persisted as a valid selection). [REQ]
 - **Term / taxonomy identity (taxonomy values):** the term ID must resolve to a `WP_Term`
   in the expected taxonomy, and the stored slug must be consistent with it (§5.8). [REQ]
 - Value references are re-serialized in the admin's chosen order. [REQ]
-- Groups assigned but with **no** selected values are allowed (they render as empty —
-  see §7.4). [RECOMMEND]
+- Groups assigned but with **no** selected values are allowed — this is a **valid
+  administrative state**; the assignment itself is **not** rejected solely because no
+  values have been selected. Such a group produces **no** frontend table (no empty
+  table, no heading or group label without rows) — see §7.2, §7.4. [DECISION D27 —
+  approved empty-group behavior, 2026-11-25]
 
 ### 4.3 Empty / stale handling
 
 - **No assigned groups** → renderer outputs nothing; native table stays visible. [D17]
-- **Assigned group, no selected values** → the group is **skipped** (no empty table
-  rendered). [RECOMMEND]
+- **Assigned group, no selected values** → the group is **skipped** (no empty table, no
+  heading rendered). [DECISION D27 — approved empty-group behavior, 2026-11-25]
 - **Selected value whose term was deleted** → that value is skipped; the rest of the
   group renders. [RECOMMEND] (R-L5)
 
@@ -402,11 +419,23 @@ group, or the terms may have changed since. Before rendering, re-verify **everyt
 **Rendering must not:** assume previously saved metadata is permanently valid; modify product
 metadata; or perform destructive cleanup. [REQ]
 
-**Stale selected-value lifecycle** [RECOMMEND — U13]: a selected value that no longer exists
-on the product is **ignored at render** (not displayed) and **rejected at the next save**
-(not re-persisted as valid), but is **retained in storage** until an explicit save rewrites
-the array. GPA performs **no** destructive automatic cleanup (consistent with D21 — no
-catalog cleanup). The exact "ignored vs retained" default is an owner-confirmation item (U13).
+**Stale selected-value lifecycle** [DECISION D26 — U13, 2026-11-25]: a selected value may
+become stale if the corresponding attribute or value is later removed or changed on the
+product. The approved lifecycle:
+- **Render time:** revalidate every selected value against the current product
+  attributes; ignore values that are no longer valid; do not render stale values; stale
+  values do **not** make a group renderable and do **not** suppress the native
+  WooCommerce attributes table.
+- **Save time:** revalidate submitted values against the current product attributes;
+  reject invalid or stale submitted selections; persist only accepted valid selections
+  according to the existing save contract (§4.2).
+- **Storage:** do **not** automatically delete previously stored stale selections merely
+  because they are invalid during rendering. Preserve stale references in existing
+  metadata until an explicit valid save operation replaces the submitted selection set.
+  No automatic background cleanup or migration (consistent with D21 — no catalog
+  cleanup).
+- **Non-destructive:** rendering is read-only — it must not modify product metadata,
+  delete stale references, rewrite group assignments, or trigger destructive cleanup.
 
 **No valid values remain:** if, after render-time validation, a group has no valid values (or
 no group has any), GPA renders nothing for that group / product and the native table stays
@@ -460,30 +489,64 @@ appropriate WooCommerce API. [DECISION D14]
   INNER JOIN {$wpdb->posts} AS p ON p.ID = pm.post_id
   WHERE pm.meta_key = '_product_attributes'
     AND p.post_type = 'product'
-    -- AND p.post_status IN ( ... )   -- see "Product-status inclusion" below
+    AND p.post_status = 'publish'   -- U12 (D25): published products only
   ```
 
   - **Why the JOIN is required:** `post_type` (and `post_status`) live on `wp_posts`, not on
     `wp_postmeta`. Filtering `post_type` directly on `wp_postmeta` is structurally invalid
     (no such column) and would either error or silently match non-product meta. [REQ]
-  - **Product-status inclusion** [UNRESOLVED — U12]: which product statuses contribute
-    values to the picker is **not** fixed by an approved decision. Alternatives:
-    - **(a) `publish` only** — picker shows only values on live products. Simplest; may hide
-      values on in-progress (draft/private) products the admin is editing.
-    - **(b) all non-trashed** (`publish`, `draft`, `private`, `pending`, `future`) — picker
-      also surfaces in-progress values; broader vocabulary.
-    - **(c) all including `trash`** — not recommended; trashed products should not seed the
-      live vocabulary.
-    The exact set is an owner decision (U12). Trashed products are **not** recommended in any
-    case. [UNRESOLVED]
-  - **Safe parsing of serialized `_product_attributes`:** each `meta_value` is a
-    **serialized** PHP array. Parse with `unserialize()` **guarded** — verify the result is
-    an `array` before use. Do **not** `eval()` or `unserialize()` untrusted data without the
-    guard. [REQ]
-  - **Malformed / unexpected metadata:** if a blob fails to parse, is not an array, or has an
-    unexpected shape (missing `name`/`value` keys, non-string values), **skip that blob**
-    (and log under `WP_DEBUG`). Never let one malformed product abort the whole aggregation.
-    [REQ]
+  - **Product-status inclusion** [DECISION D25 — U12, 2026-11-25]: only products with
+    `post_status = 'publish'` contribute custom-attribute values to the store-wide group
+    vocabulary. Products in any other status must **not** contribute values — at minimum
+    `draft`, `pending`, `private`, `future`, `trash`. Do **not** silently include
+    non-published products. The status restriction is applied to the **posts table**
+    (`p.post_status = 'publish'` in the JOIN above), not to the postmeta table. This
+    decision does **not** introduce any catalog cleanup or migration behavior.
+  - **Safe unserialization of `_product_attributes` (mandatory contract).** Each
+    `meta_value` is a **serialized** PHP array. The raw SQL path returns the raw string,
+    so GPA must unserialize it itself. The contract:
+    1. **No object instantiation** from untrusted serialized metadata, ever.
+    2. **`allowed_classes => false`** wherever explicit unserialization is required.
+       **`maybe_unserialize()` does not provide this restriction:** in the installed
+       WP 7.1.5 it calls `@unserialize( trim( $data ) )` with the **default**
+       `allowed_classes` (embedded objects are instantiated), so GPA does **not** rely
+       on `maybe_unserialize()` for deserialization safety on this path. A
+       `maybe_unserialize()`-first pattern is specifically **not** used here: for a
+       serialized array blob (the actual shape of `_product_attributes`), it would
+       already have unserialized the data with the default `allowed_classes` —
+       instantiating any embedded objects — before any guarded fallback could run.
+       [WP core API — `wp-includes/functions.php:653`, verified 2026-11-25]
+    3. **Type validation:** the unserialized result must be an `array`; anything else
+       (string, scalar, `false`, `__PHP_Incomplete_Class`) is rejected.
+    4. **Structure validation:** before processing, verify the expected array shape —
+       a list of entries, each an array with the expected `name` / `value` keys and
+       string values (the shape `WC_Product_Data_Store_CPT::read_attributes()`
+       consumes). Entries that do not match (including `__PHP_Incomplete_Class`
+       objects produced by `allowed_classes => false`) are rejected.
+    5. **Graceful handling:** malformed, corrupted, or unexpected metadata is skipped
+       (and logged under `WP_DEBUG`); it must never cause warnings, fatal errors, or
+       uncontrolled processing, and must never abort the whole aggregation.
+    6. **Exclusion:** invalid metadata contributes **no** values to the Custom
+       Attribute aggregation.
+    Illustrative pattern (not implementation code):
+    ```php
+    // $raw_value: raw string from the SQL query (wp_postmeta.meta_value)
+    $data = $raw_value;
+    if ( is_string( $data ) && is_serialized( $data ) ) {
+        $data = @unserialize( $data, array( 'allowed_classes' => false ) );
+    }
+    if ( ! is_array( $data ) ) {
+        // Not a serialized array, or unserialization failed → reject this record.
+        continue;
+    }
+    // Then validate the expected entry structure (contract item 4) before processing.
+    ```
+    The `@` suppresses `unserialize()`'s own warning on malformed input; it is **not**
+    a substitute for the validation above — validation is the protection, suppression
+    is only for noise control. If a value is instead obtained via the metadata API
+    (`get_post_meta()` → `maybe_unserialize()`), the same contract applies to the
+    result: treat it as untrusted, validate type + structure, and never assume object
+    instantiation was prevented. [REQ]
   - **Caching:** the distinct `name => [values]` map is **cached in a transient** (single
     key) so the expensive query runs only on cache miss. [RECOMMEND]
   - **Cache invalidation** — the transient must be invalidated (deleted) on events that can
@@ -683,8 +746,8 @@ consistent with the reference plugin's placement). [RECOMMEND]
 
 - **REST-first** (house rule: prefer REST over `admin-ajax.php`). [REQ]
 - Endpoints (namespaced `anishop/v1`, nonce-protected, capability-checked):
-  - `GET  /gpa/groups` — list groups (for the product-edit picker), with optional
-    `category` filter.
+  - `GET  /gpa/groups` — list groups (for the product-edit picker; only `publish` /
+    `draft` groups are offered — D24/U11), with optional `category` filter.
   - `GET  /gpa/groups/{id}/values` — a group's value references.
   - `GET  /gpa/attribute-values` — the store-wide value vocabulary (both kinds; custom
     values from the cached aggregation, §5.2).
@@ -725,7 +788,8 @@ time (§4.4). For each group ID in `_ani_gpa_assigned_groups` (in order):
    (render-permitted). If any check fails → **skip** (stale / invalid). [REQ]
 2. Group name = the CPT title. [REQ]
 3. Read `_ani_gpa_selected_values[ $group_id ]` (ordered value refs). If empty →
-   **skip the group** (no empty table). [RECOMMEND]
+   **skip the group** (no empty table, no heading or group label without rows).
+   [DECISION D27 — approved empty-group behavior, 2026-11-25]
 4. For each value ref, **re-validate against the current product** (§5.8) and resolve
    display text:
    - Taxonomy: `get_term( $value_id, $attribute )` (taxonomy-scoped) → confirm it is a
@@ -756,6 +820,8 @@ time (§4.4). For each group ID in `_ani_gpa_assigned_groups` (in order):
   **and** at least one value passed product-specific re-validation (§5.8) and was rendered.
   Stale or invalid GPA metadata (deleted groups, removed terms, values no longer on the
   product) does **not** count as renderable content and must **not** trigger the hide.
+  An assigned group with **no** selected values (or no currently valid selected values)
+  does **not** count as renderable GPA content either. [DECISION D27]
   Mechanism: the `woocommerce_display_product_attributes` filter returns `array()` (the
   template guard `if ( ! $product_attributes ) { return; }` then suppresses the table).
   This is **non-destructive** (display-only; `_product_attributes` is untouched).
@@ -768,6 +834,9 @@ time (§4.4). For each group ID in `_ani_gpa_assigned_groups` (in order):
 
 - **No groups / no values / all stale** → GPA renders nothing; native table visible.
   [D17]
+- **Assigned group with no selected values** (or no currently valid selected values) →
+  no table, no heading, no group label is rendered for it; it does not count as
+  renderable GPA content for the D17 native-table hide. [DECISION D27]
 - **Partially stale** (some values/groups missing) → render what is valid; skip the rest.
   Never crash, never render a broken row. [RECOMMEND] (R-L5)
 - **Exception safety:** the renderer wraps resolution in a guard so a failure degrades to
@@ -1042,7 +1111,8 @@ array(
 ## 11. Phase 2B verification checklist
 
 Phase 2B (runtime verification) must confirm every **[2B-VERIFY]** item before Phase 3
-implementation. Consolidated list:
+implementation. Consolidated list. **All items below are pending** — none has been
+executed or verified as of this document (Phase 2A.2, 2026-11-25).
 
 | # | Item | Section |
 |---|------|---------|
@@ -1055,24 +1125,38 @@ implementation. Consolidated list:
 | B1-7 | Confirm the custom-value aggregation query (§5.2) returns correct distinct values on the live catalog and the transient invalidation works | §5.2, §10.2 |
 | B1-8 | Investigate the reference "View Attribute" button behavior sufficiently for an informed decision (D18) — **no** production install; sandbox install needs separate owner approval | §8.5 |
 | B1-9 | Group post retrieval + post-type validation: confirm the `get_post( $id )` → exists → `post_type === 'ani_gpa_group'` → status sequence works as specified (no post-type argument passed to `get_post`) | §3.3, §7.2 |
-| B1-10 | Allowed group-status behavior: confirm which statuses are permitted at save/assignment vs render (U11) and that the render gate enforces `publish` | §3.3, §7.2 |
+| B1-10 | Group-status policy (U11, decided — D24): confirm `publish` and `draft` groups are accepted at save/assignment, other statuses are rejected, and the render gate enforces `publish` only (draft groups never render) | §3.3, §7.2 |
 | B1-11 | Custom-attribute aggregation query: confirm the `wp_posts` ⋈ `wp_postmeta` JOIN (post type / status on `wp_posts`) returns correct distinct values on the live catalog | §5.2, §10.2 |
-| B1-12 | Product-status inclusion in the aggregation: confirm the chosen status set (U12) and that trashed products are excluded | §5.2 |
-| B1-13 | Safe parsing of serialized `_product_attributes`: confirm guarded `unserialize()` + array check, and that malformed blobs are skipped without aborting the aggregation | §5.2 |
+| B1-12 | Product-status filter in the aggregation (U12, decided — D25): confirm only `publish` products contribute custom-attribute values (status filter on `wp_posts` in the JOIN); `draft` / `pending` / `private` / `future` / `trash` products contribute none | §5.2 |
+| B1-13 | Safe unserialization of `_product_attributes` (decided contract): confirm the actual metadata retrieval + unserialization path; confirm object instantiation is prevented (`allowed_classes => false` — `maybe_unserialize()` alone does **not** provide this); confirm malformed / corrupted serialized data is safely rejected (no warnings, no fatals, no uncontrolled processing); confirm the resulting array structure is validated before processing; confirm invalid records are excluded from the aggregation | §5.2 |
 | B1-14 | Cache invalidation coverage: confirm the transient is invalidated on product create / update / delete / trash / restore, and identify import / bulk / programmatic write paths that bypass `save_post_product` | §5.2 |
 | B1-15 | Global (taxonomy) attribute matching: confirm a group value matches a product only via term ID + taxonomy identity + actual product term membership (`wc_get_product_terms()` / `get_options()`) | §5.8 |
 | B1-16 | Custom attribute matching: confirm a group value matches a product only via exact attribute-name identity + exact parsed-value identity (`wc_get_text_attributes()`) | §5.8 |
 | B1-17 | Attribute-name and value-identity rules: confirm byte-for-byte name match, exact value match, and that no splitting / normalization on `|` / `،` / `,` occurs (D20) | §5.8 |
 | B1-18 | Strict taxonomy-specific term validation: confirm `get_term( $id, $taxonomy )` rejects missing / wrong-taxonomy / slug-inconsistent terms, and that a term from another taxonomy is never accepted | §5.8 |
 | B1-19 | Strict Boolean parsing: confirm the settings sanitizer rejects ambiguous input and does not coerce arbitrary non-empty strings to `true` (allowlist / `rest_sanitize_boolean()` behavior) | §9.3 |
-| B1-20 | Save-time validation: confirm the product save handler validates group reference + tier A + tier B + term identity and persists only the accepted subset | §4.2, §4.4 |
-| B1-21 | Render-time validation: confirm the renderer re-verifies group reference, term / value identity, and product membership, and excludes stale / invalid values | §4.4, §7.2 |
-| B1-22 | Stale selected-value behavior: confirm a value no longer on the product is ignored at render, rejected at next save, retained in storage, with no destructive auto-cleanup (U13) | §4.4 |
-| B1-23 | Native table visibility: confirm the native `shop_attributes` table stays visible when GPA content is absent **or** entirely stale / invalid, and is hidden only when valid renderable content exists and the setting permits | §7.3, §8.3 |
+| B1-20 | Save-time validation: confirm the product save handler validates group reference + tier A + tier B + term identity and persists only the accepted subset; confirm a group may be assigned with no selected values (valid administrative state, not rejected); confirm stale / invalid submitted selections are rejected (U13/D26) | §4.2, §4.4 |
+| B1-21 | Render-time validation: confirm the renderer re-verifies group reference, term / value identity, and product membership, and excludes stale / invalid values; confirm a group with no (valid) selected values produces no table, no heading, and no empty rows; confirm rendering is read-only (no metadata modification, no cleanup) | §4.4, §7.2 |
+| B1-22 | Stale selected-value lifecycle (U13, decided — D26): confirm stale values are ignored at render, rejected at the next save, and retained in storage until an explicit valid save replaces the selection set; confirm no destructive auto-cleanup and no metadata modification by the renderer | §4.4 |
+| B1-23 | Native table visibility: confirm the native `shop_attributes` table stays visible when GPA content is absent, when all stored GPA data is stale / invalid, or when assigned groups have no selected values, and is hidden only when valid renderable content exists and the setting permits | §7.3, §8.3 |
 
 ---
 
-## 12. Unresolved items and owner decisions needed
+## 12. Owner decisions and unresolved items
+
+This section distinguishes **resolved owner decisions** (ratified 2026-11-25, Phase
+2A.2) from **open items** still awaiting owner ratification. Resolved items are recorded
+as [DECISION] with their final policy; open items retain their existing status.
+
+### 12.1 Resolved owner decisions (ratified 2026-11-25 — Phase 2A.2)
+
+| # | Item | Status | Final policy |
+|---|------|--------|--------------|
+| U11 | Group-status policy: which post statuses may be *assigned* to a product at save time (vs the render-time `publish` gate) | [DECISION D24] | `publish` and `draft` groups may be selected and assigned to products; groups with any other status are rejected for new assignments / saved references. Only `publish` groups render on the frontend; draft groups never appear publicly, even if their IDs exist in product metadata. (§3.3) |
+| U12 | Custom-value aggregation: which product statuses contribute values to the admin picker | [DECISION D25] | Only products with `post_status = 'publish'` contribute custom-attribute values to the store-wide vocabulary; all other statuses (at minimum `draft`, `pending`, `private`, `future`, `trash`) are excluded. The status filter is applied on `wp_posts` in the JOIN. No catalog cleanup or migration. (§5.2) |
+| U13 | Stale selected-value lifecycle: ignored-at-render + retained-in-storage (no auto-cleanup) | [DECISION D26] | Stale values are ignored at render (never rendered; never make a group renderable; never suppress the native table), rejected at save (only accepted valid selections are persisted), and retained in storage until an explicit valid save replaces the selection set. Rendering is read-only; no automatic background cleanup or migration. (§4.4) |
+
+### 12.2 Open items (awaiting owner ratification)
 
 | # | Item | Status | Needed from owner |
 |---|------|--------|-------------------|
@@ -1085,10 +1169,7 @@ implementation. Consolidated list:
 | U7 | `table_style` options set (`default` / `minimal` / `boxed`) | [RECOMMEND] | Confirm the style variants. |
 | U8 | `location` anchor options set | [RECOMMEND] | Confirm the allowed positions. |
 | U9 | Theme Mod key `anishop_gpa_settings` (distinct from the `anishop_attribute_presentation` option) | [RECOMMEND] | Confirm. |
-| U10 | Empty-group rendering (skip vs render empty header) | [RECOMMEND] | Confirm skip. |
-| U11 | Group-status policy: which post statuses may be *assigned* to a product at save time (vs the render-time `publish` gate) | [UNRESOLVED] | Decide the allowed assignment-time status set (recommended: `publish` + optionally `draft`). |
-| U12 | Custom-value aggregation: which product statuses contribute values to the admin picker (publish-only vs all non-trashed vs all) | [UNRESOLVED] | Choose the status set (recommended: publish-only or all non-trashed; never trash). |
-| U13 | Stale selected-value lifecycle: ignored-at-render + retained-in-storage (no auto-cleanup) vs other | [RECOMMEND] | Confirm the non-destructive default (ignored at render, retained until explicit save). |
+| U10 | Empty-group rendering (skip vs render empty header) | [RECOMMEND — confirmed by D27, 2026-11-25] | Confirmed: skip; no empty tables or headings (§4.2, §7.2, §7.4). |
 
 ## 13. Evidence appendix
 
@@ -1177,6 +1258,27 @@ Verified against the installed source (read-only):
   (`wp-includes/post.php:1138`): the second parameter is an **output format**, not a
   post-type constraint — confirming the corrected group-reference sequence. (§3.3)
   [WP core API]
+
+### 13.5 API verifications for Phase 2A.2 corrections (2026-11-25)
+
+Verified against the installed source (read-only):
+
+- **`maybe_unserialize( $data )`** (`wp-includes/functions.php:653`, WP 7.1.5):
+  `if ( is_serialized( $data ) ) { return @unserialize( trim( $data ) ); }` — the
+  internal `unserialize()` call is made **without** the `allowed_classes` option, i.e.
+  with the default `allowed_classes => true`, so objects embedded in a serialized blob
+  **are instantiated**. `maybe_unserialize()` therefore does **not** provide an
+  `allowed_classes` restriction and must not be relied on for deserialization safety.
+  (§5.2) [WP core API]
+- **`is_serialized( $data, $strict = true )`** (`wp-includes/functions.php:674`):
+  returns `true` only for strings that are (strictly) serialized data; used as the shape
+  gate before the guarded `unserialize()` in the §5.2 contract. [WP core API]
+- **`unserialize( $data, array( 'allowed_classes' => false ) )`** (PHP core, PHP 8.3.36):
+  with `allowed_classes => false`, no class is instantiated; embedded objects are
+  returned as `__PHP_Incomplete_Class` instances (no constructor / `__wakeup` /
+  `__unserialize` execution). Combined with the `is_array()` + structure validation in
+  the §5.2 contract, this guarantees no object instantiation from untrusted serialized
+  metadata. [PHP core]
 
 ---
 

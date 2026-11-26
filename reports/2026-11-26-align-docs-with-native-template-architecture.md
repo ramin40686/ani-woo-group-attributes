@@ -212,11 +212,10 @@ Q1–Q4 left unresolved.
 - **Branch:** `chore/align-docs-with-native-template-architecture`
 - **Base branch:** `phase-2a-3-native-attribute-template-redesign` (verified at `d531d2e`, clean tree)
 - **Base commit:** `d531d2e`
-- **Final commit hash:** `a1c37b9` (work commit: docs + this report); this SHA was
-  recorded in the follow-up commit `d858e03`
-- **Remote push status:** pushed to `origin/chore/align-docs-with-native-template-architecture`
-  and verified via `git ls-remote` — remote branch at `d858e039bba32b56a1e9c5d046fdca74b1dcb0a9`
-  (matches local HEAD at verification time)
+- **Original documentation work commit:** `a1c37b9` (docs + this report)
+- **Follow-up commit recording verification:** `d858e03` (recorded the work commit SHA in this report)
+- **Latest branch HEAD:** `2503c93cda263b0ecd61a0dc8584e377d10a9031` (recorded push and working-tree verification in this report)
+- **Remote branch HEAD:** `2503c93cda263b0ecd61a0dc8584e377d10a9031` — verified via `git ls-remote` on 2026-11-26 (matches local branch HEAD)
 
 ## 16. Phase / Task Status
 Task complete. Project phase status unchanged by this task: Phase 2A.1, 2A.2, 2A.3

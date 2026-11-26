@@ -255,7 +255,6 @@ Required tests:
 * RTL and Persian text (all UI surfaces).
 * Variable products (attributes linked to variations).
 * Custom (non-taxonomy) attributes (uniform presentation).
-* Catalog visibility / hidden products.
 * Empty states (no groups, groups with no attributes, products with no attributes).
 * Error states (AJAX failure, permission denied).
 * Fast input changes / drag-and-drop stability.

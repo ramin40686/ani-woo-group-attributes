@@ -2,7 +2,7 @@
 
 Advanced WooCommerce Product Group Attributes manager in the free version of the Blocksy WordPress theme
 
-Project status: **Phase 0, 0.1, 1, 1.1, 1.1.1, 2A.1, 2A.2 complete — Phase 2A.3 (native-template architecture redesign) IN PROGRESS — Phase 2B and Phase 3 NOT STARTED**
+Project status: **Phase 0, 0.1, 1, 1.1, 1.1.1, 2A.1, 2A.2, 2A.3 complete — Phase 2B and Phase 3 NOT STARTED**
 Project type: WordPress / Blocksy / WooCommerce
 Target website: Anishop
 Target URL: http://anishop.local
@@ -15,29 +15,26 @@ Implement a complete, lightweight, maintainable WooCommerce **Product Group Attr
 
 The final functionality should provide an experience comparable to the official **WooCommerce Group Attributes** plugin (reference package in `docs/references/`).
 
-The module integrates with WooCommerce product administration (product data panel / product edit screen) and frontend product presentation (single product page and shop page), rendered inside the Blocksy child theme.
+> **Phase 2A.3 clarification (2026-11-25 — authoritative):** GPA is a **reusable Global WooCommerce Attribute Template Manager**. A GPA group is a template of **Global Attribute definitions** (not values); loading a group inserts those definitions into the product's **native** WooCommerce attribute collection; the product's native attribute data is the **single source of truth**; and **all** product attributes (GPA-loaded, manual Global, and Custom) are rendered through the **standard WooCommerce/Blocksy Additional Information tab**. The original reference-plugin-based feature list below was superseded by this clarification (decisions D28–D39; `docs/architecture/phase-2a-architecture-specification.md`).
+
+The module integrates with WooCommerce product administration (Product Data → Attributes) and the standard WooCommerce/Blocksy frontend product presentation (the Additional Information tab on the single product page), rendered inside the Blocksy child theme. GPA introduces no separate frontend output.
 
 ### Required functionality
 
-1. **Group attribute management (admin)** — Products → Group Attributes:
+1. **Group attribute management (admin)** — independent top-level admin menu immediately after Products:
    - Create, edit, delete attribute groups.
-   - Name the attribute group and select the existing attribute values to display under this group.
-   - Create or select the group category for this group.
-   - Drag-and-drop the attribute values to sort them in the preferred order.
+   - Name the attribute group and select the existing **Global Attribute definitions** to include in the group.
+   - Drag-and-drop the group's attributes to set their order (defines the initial insertion order when the group is loaded).
    - List and manage all created group attributes.
-2. **Group attribute categories (admin)** — Products → Group Attributes Categories:
-   - Create, edit, delete group categories.
-   - Attach categories to group attributes in each group's settings.
+2. **Group attribute categories (admin):** [UNRESOLVED owner decision Q1] — not part of the core architecture; in scope only if the owner confirms.
 3. **Product-level group loading (product edit screen)** — Product Data → Attributes:
-   - "Create group for this product" toggle.
-   - "Manage Attribute Groups" select box: load multiple groups one by one (the Load button loads all attributes associated with the selected group).
-   - "Load Group Categories" field: load multiple group attributes at once (all groups of a category).
-   - After loading, select the attribute values to display on the product page.
-   - Drag-and-drop the attribute groups to sort them per product.
-4. **General settings** — WooCommerce → Settings → Group Attributes:
-   - Choose the table style and location.
-   - Customize the table colors.
-   - Enable the "View Attribute" button on the shop page.
+   - UI-only "Create group for this product" toggle (reveals the group select + Load controls; no persisted flag).
+   - Group select + Load: loading a group inserts its Global Attribute definitions into the product's native attribute collection (native `woocommerce_add_attribute` row insertion).
+   - Multiple groups may be loaded into the same product (duplicate attributes are skipped).
+   - After loading, the admin uses **native** WooCommerce controls to select terms/values, edit, remove, add (Global or Custom), and reorder attributes.
+4. **General settings** — Theme Mod `anishop_gpa_settings`:
+   - Table style: `default` / `minimal` / `boxed` — applied uniformly to **all** product attributes (Global and Custom, GPA-loaded and manual).
+   - No frontend location setting (fixed to the native Additional Information tab); no "View Attribute" shop-page button (deferred / out of scope, D36).
 5. **Cross-cutting requirements:**
    - Error handling.
    - Responsive desktop and mobile behavior.
@@ -184,7 +181,7 @@ Tasks (all completed):
 
 ### Phase 2 – Architecture Design and Approval
 
-Status: **IN PROGRESS** — sub-phases 2A.1 and 2A.2 complete; 2A.3 in progress; 2B not started.
+Status: **IN PROGRESS** — sub-phases 2A.1, 2A.2, and 2A.3 complete; 2B not started.
 
 Objective: Define the final implementation before coding.
 
@@ -197,20 +194,21 @@ Sub-phase status:
 * **Phase 2A.2 – Final Architecture Consistency Fixes:** **COMPLETE (2026-11-25)** — branch
   `phase-2a-2-final-architecture-consistency`. Strengthened the safe-unserialization
   contract, reconciled empty-group behavior, and ratified U11/U12/U13 (D24/D25/D26).
-* **Phase 2A.3 – Native Attribute Template Redesign:** **IN PROGRESS** — branch
-  `phase-2a-3-native-attribute-template-redesign`. Redesigns the architecture to the
-  **native-template model** (groups = templates of Global Attribute definitions; Load adds
-  native attribute rows; native rendering). Supersedes the Phase 2A / 2A.1 / 2A.2
-  value-selection architecture.
+* **Phase 2A.3 – Native Attribute Template Redesign:** **COMPLETE (2026-11-25)** — branch
+  `phase-2a-3-native-attribute-template-redesign`, commit `d531d2e`. Redesigned the
+  architecture to the **native-template model** (groups = templates of Global Attribute
+  definitions; Load adds native attribute rows; native rendering; no product meta).
+  Supersedes the Phase 2A / 2A.1 / 2A.2 value-selection architecture. Report:
+  `reports/2026-11-25-phase-2a-3-native-attribute-template-redesign.md`.
 * **Phase 2B – Runtime Verification:** **NOT STARTED** — will verify the [2B-VERIFY] items
   in the Phase 2A.3 specification (§17) before Phase 3.
 
 Deliverables:
 
 * Technical architecture overview (components + data flow).
-* Component responsibilities (CPT, taxonomy, admin UI, product metabox, frontend renderer, settings).
+* Component responsibilities (CPT, group editor, Product Data → Attributes integration, native frontend rendering, settings).
 * File structure inside `inc/ani-group-product-attributes/`.
-* Data model: CPT `ani_gpa_group`, taxonomy `ani_gpa_group_cat`, product meta keys.
+* Data model: CPT `ani_gpa_group` + group meta `_ani_gpa_group_attributes` (ordered `pa_{slug}` references) + Theme Mod `anishop_gpa_settings`; no GPA product meta; no category taxonomy in the core (Q1 unresolved).
 * PHP plan (classes, hooks, save handlers).
 * JavaScript plan (dependency-free vanilla JS, drag-and-drop, AJAX group loading).
 * CSS plan (`.ani-gpa-` prefix, RTL, house style).
@@ -251,15 +249,14 @@ Test the feature in the actual Anishop environment.
 
 Required tests:
 
-* Admin: group CRUD, categories, value/group sorting (desktop).
-* Product metabox: load groups one-by-one and by category, value selection, per-product group sorting.
-* Frontend rendering: single product page (desktop + mobile).
-* Frontend rendering: shop page "View Attribute" button.
+* Admin: group CRUD, Global Attribute selection, in-group attribute ordering (desktop). (Group categories only if owner decision Q1 is resolved.)
+* Product Data → Attributes: load one group, load multiple groups, duplicate handling, native value selection, native reordering.
+* Frontend rendering: single product page Additional Information tab (desktop + mobile).
 * RTL and Persian text (all UI surfaces).
 * Variable products (attributes linked to variations).
-* Custom (non-taxonomy) attributes.
+* Custom (non-taxonomy) attributes (uniform presentation).
 * Catalog visibility / hidden products.
-* Empty states (no groups, no values, no products).
+* Empty states (no groups, groups with no attributes, products with no attributes).
 * Error states (AJAX failure, permission denied).
 * Fast input changes / drag-and-drop stability.
 * Keyboard navigation (admin UI).

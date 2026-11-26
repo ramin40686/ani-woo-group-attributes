@@ -77,7 +77,7 @@ restoring the originals.
 
 | Group / category | ID | Created | Notes |
 |------------------|----|---------|-------|
-| _(none yet — CPT `ani_gpa_group` / taxonomy `ani_gpa_group_cat` not yet registered)_ | | | |
+| _(none yet — CPT `ani_gpa_group` not yet registered; the `ani_gpa_group_cat` taxonomy is not part of the core architecture — group categories are an unresolved owner decision, Q1/B2-33)_ | | | |
 
 ## 6. Known limitations
 
@@ -113,7 +113,7 @@ To restore an original fixture from its backup:
 ## 8. Isolation rules (summary)
 
 - Authorized: modify the fixtures above + explicitly-created GPA test fixtures; create test
-  groups/categories/attributes/products.
+  groups/attributes/products (group categories only if owner decision Q1 is resolved).
 - **Not authorized:** unrelated live products, customer orders/data, real inventory/pricing,
   production attributes outside fixtures, global WooCommerce settings unrelated to GPA,
   production theme modules, bulk catalog operations.

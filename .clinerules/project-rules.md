@@ -25,8 +25,8 @@
 - از استانداردهای WordPress PHP Coding Standards پیروی کن.
 - تمام فایل‌های PHP باید در ابتدا `if ( ! defined( 'ABSPATH' ) ) { exit; }` داشته باشند.
 - نام‌گذاری کلاس‌ها به صورت `Ani_GPA_Class_Name` و توابع به صورت `ani_gpa_function_name`.
-- برای ذخیره داده‌ها از Custom Post Type `ani_gpa_group` و `ani_gpa_group_cat` (تاکسونومی) استفاده کن.
-- متادیتای محصول: `_ani_gpa_assigned_groups` (آرایه) و `_ani_gpa_selected_values` (آرایه associative).
+- برای ذخیره داده‌ها از Custom Post Type `ani_gpa_group` استفاده کن. (تاکسونومی `ani_gpa_group_cat` جزو معماری هسته نیست — دسته‌بندی گروه‌ها یک تصمیم باز مالک است (Q1).)
+- متادیتای گروه: `_ani_gpa_group_attributes` (آرایه مرتب‌شده از ارجاعات `pa_{slug}` ویژگی‌های سراسری). هیچ متادیتای اختصاصی GPA روی محصول ذخیره نمی‌شود؛ داده بومی `_product_attributes` محصول منبع یکتای حقیقت است (D30).
 
 ## قوانین امنیتی
 - تمام خروجی‌ها با `esc_html()`، `esc_attr()` یا `wp_kses_post()` escape شوند.
@@ -214,9 +214,14 @@ Within the designated fixtures **and** products explicitly created as GPA test f
 
 - Add, edit, and remove attributes (global and custom).
 - Create new global attributes and taxonomy terms when necessary.
-- Create, edit, and delete GPA groups and group categories.
-- Assign groups to test products; change selected attribute values; reorder groups/values.
-- Change product attributes and relevant product metadata.
+- Create, edit, and delete GPA groups. (Group categories are not part of the core
+  architecture — unresolved owner decision Q1; creating them requires separate owner
+  confirmation.)
+- Load GPA groups into test products (native attribute row insertion); select, edit, and
+  remove attribute values through the native WooCommerce controls; reorder attributes
+  through the native controls.
+- Change product attributes through the native WooCommerce workflow (no GPA-specific
+  product metadata exists — D30).
 - Create additional test products by duplicating the fixtures; create as many additional
   test groups, attributes, and products as reasonably needed.
 
@@ -245,7 +250,7 @@ before proceeding.
 ### Test-fixture naming & registry
 
 - Test-only products/attributes/terms use the `GPA TEST — ` prefix.
-- Every fixture, backup, test attribute/term, group, and category is recorded in
+- Every fixture, backup, test attribute/term, and group is recorded in
   `docs/testing/test-fixtures.md`, which must be kept current as the project evolves.
 
 # General WordPress Rules (global rule bank + reasoning policy)

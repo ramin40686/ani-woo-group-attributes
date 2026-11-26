@@ -22,6 +22,6 @@ WooCommerce **Product Group Attributes** manager — developed as an isolated mo
 
 ## Status
 
-**Phase 0, Phase 1 (investigation), and Phase 1.1 (decisions finalization + testing policy) are complete. Phase 2 (architecture design) is NOT STARTED — awaiting explicit project-owner authorization.** See `docs/PROJECT-ROADMAP.md`.
+**Phase 0, 0.1, 1, 1.1, 1.1.1, 2A.1, 2A.2, and 2A.3 are complete. Phase 2B (runtime verification) and Phase 3 (implementation) are NOT STARTED — awaiting explicit project-owner authorization.** See `docs/PROJECT-ROADMAP.md`.
 
-Selected architecture direction (for Phase 2 design, not yet implemented): **A1** (CPT `ani_gpa_group` + taxonomy `ani_gpa_group_cat` + product meta + Theme Mod) + **B1** (Blocksy custom-layer rendering). Delimiter normalization (C) is deferred. See `.clinerules/decisions.md` (D14–D23).
+Approved architecture (Phase 2A.3, not yet implemented): **native-template model** — GPA groups are templates of Global Attribute definitions (CPT `ani_gpa_group` + ordered `pa_{slug}` references + Theme Mod `anishop_gpa_settings`); loading a group inserts **native** WooCommerce attribute rows; the product's native attribute data is the single source of truth; all attributes render through the standard WooCommerce/Blocksy Additional Information tab. Delimiter normalization (C) remains deferred. See `.clinerules/decisions.md` (D28–D39) and `docs/architecture/phase-2a-architecture-specification.md`.

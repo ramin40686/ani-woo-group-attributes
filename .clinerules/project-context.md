@@ -8,14 +8,14 @@ The final functionality should provide an experience comparable to the official 
 
 ## Ultimate Objective
 
-Let Anishop store admins organize WooCommerce product attributes into named, sortable **groups** (optionally organized into **group categories**), assign those groups to products, choose which attribute values each product displays, and render the selected attributes on the frontend — all managed from the WordPress admin and rendered inside the Blocksy child theme.
+Let Anishop store admins define reusable **groups** of existing Global WooCommerce Attribute definitions (templates), load those groups into products so the group's attributes are inserted into the product's **native** WooCommerce attribute collection, and manage the actual attribute values through the **native** WooCommerce product editor. All product attributes (GPA-loaded, manual Global, and Custom) are presented through the **standard WooCommerce/Blocksy Additional Information tab** — all managed from the WordPress admin and rendered inside the Blocksy child theme. (Phase 2A.3 clarification, decisions D28–D39.)
 
-## Mandatory Functionality (PROJECT-ROADMAP.md §1)
+## Mandatory Functionality (PROJECT-ROADMAP.md §1 — updated for the Phase 2A.3 native-template model)
 
-1. **Group attribute management (admin):** create/edit/delete attribute groups; name a group; select existing attribute values to display under it; assign a group category; drag-and-drop value sorting; list all groups.
-2. **Group category management (admin):** create/edit/delete group categories; attach categories to groups.
-3. **Product-level group loading (product edit screen):** "create group for this product" toggle; load groups one by one ("Manage Attribute Groups" + Load); load all groups of a category at once ("Load Group Categories"); select which attribute values display on the product page; drag-and-drop group sorting per product.
-4. **General settings:** table style, location, table colors; optional "View Attribute" button on the shop page.
+1. **Group attribute management (admin)** — independent top-level menu after Products: create/edit/delete groups; name a group; select existing **Global Attribute definitions** to include; drag-and-drop attribute ordering within a group; list all groups.
+2. **Group category management (admin):** [UNRESOLVED owner decision Q1] — not part of the core architecture.
+3. **Product-level group loading (product edit screen)** — Product Data → Attributes: UI-only "create group for this product" toggle; group select + Load (inserts the group's Global Attribute definitions into the product's native attribute collection); multiple groups may be loaded (duplicates skipped); values, edits, removals, additions, and reordering are then done through **native** WooCommerce controls.
+4. **General settings:** table style (`default` / `minimal` / `boxed`) applied uniformly to all product attributes; no location setting; no "View Attribute" button (deferred / out of scope, D36).
 5. **Cross-cutting:** error handling; responsive desktop + mobile; Persian RTL; minimal resource consumption.
 
 ## Core Principles (PROJECT-ROADMAP.md §1)
@@ -33,10 +33,13 @@ Let Anishop store admins organize WooCommerce product attributes into named, sor
 | Phase | Objective | Status |
 |-------|-----------|--------|
 | **0** | Independent workspace migration | **COMPLETE (2026-11-15/16)** |
-| **1** | Technical investigation: live child-theme architecture, native WooCommerce attribute architecture, reference plugin behavior (PDF + screenshots), options A/B/C. Evidence-based report + recommended architecture. **No implementation.** | **PREPARED — awaiting owner authorization (not started)** |
-| **2** | Architecture design and approval (technical architecture, component responsibilities, file structure, PHP/JS/CSS plans, AJAX/REST strategy, security, performance, WooCommerce compatibility, mobile/RTL, testing strategy) | NOT STARTED |
+| **0.1** | Workflow standardization | **COMPLETE (2026-11-23)** |
+| **1** | Technical investigation: live child-theme architecture, native WooCommerce attribute architecture, reference plugin behavior (PDF + screenshots), options A/B/C. Evidence-based report + recommended architecture. **No implementation.** | **COMPLETE (2026-11-24)** |
+| **1.1** | Decisions finalization + permanent test-environment policy | **COMPLETE (2026-11-24)** |
+| **1.1.1** | Pre-merge finalization | **COMPLETE (2026-11-24)** |
+| **2** | Architecture design and approval (technical architecture, component responsibilities, file structure, PHP/JS/CSS plans, AJAX/REST strategy, security, performance, WooCommerce compatibility, mobile/RTL, testing strategy) | **IN PROGRESS — 2A.1, 2A.2, 2A.3 COMPLETE (2026-11-25); 2B NOT STARTED** |
 | **3** | Full implementation (all mandatory features; incremental; verify each component; isolated in child theme; must not disrupt existing modules) | NOT STARTED |
-| **4** | Integration and testing in the real Anishop environment (admin CRUD, product metabox, frontend rendering, RTL, desktop/mobile, variable products, custom attributes, catalog visibility, empty/error states, performance, module compatibility) | NOT STARTED |
+| **4** | Integration and testing in the real Anishop environment (admin CRUD, Product Data → Attributes loading, frontend rendering, RTL, desktop/mobile, variable products, custom attributes, catalog visibility, empty/error states, performance, module compatibility) | NOT STARTED |
 | **5** | Optimization and finalization (remove unused code, optimize assets, security/escaping review, performance review, compatibility, documentation, rollback instructions, final report) | NOT STARTED |
 
 ## Definition of Done (PROJECT-ROADMAP.md §5)

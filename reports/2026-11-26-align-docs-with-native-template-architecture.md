@@ -212,7 +212,8 @@ Q1–Q4 left unresolved.
 - **Branch:** `chore/align-docs-with-native-template-architecture`
 - **Base branch:** `phase-2a-3-native-attribute-template-redesign` (verified at `d531d2e`, clean tree)
 - **Base commit:** `d531d2e`
-- **Final commit hash:** recorded in the follow-up commit (see `git log` on this branch)
+- **Final commit hash:** `a1c37b9` (work commit: docs + this report); this SHA was
+  recorded in the follow-up commit
 - **Remote push status:** recorded in the follow-up commit after push verification
 
 ## 16. Phase / Task Status

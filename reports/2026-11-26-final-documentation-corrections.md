@@ -137,8 +137,10 @@ Phase 2B or implementation work started.
 - **Base branch:** `chore/align-docs-with-native-template-architecture` (verified at `2503c93cda263b0ecd61a0dc8584e377d10a9031`, clean tree)
 - **Base commit:** `2503c93cda263b0ecd61a0dc8584e377d10a9031`
 - **Final commit hash:** `e377219` (work commit: the three documentation corrections);
-  this SHA was recorded in the follow-up commit
-- **Remote push status:** recorded in the follow-up commit after push verification
+  this SHA was recorded in the follow-up commit `b0f264c`
+- **Remote push status:** pushed to `origin/chore/final-documentation-corrections` and
+  verified via `git ls-remote` — remote branch at `b0f264cd1581ff9974a44fd80200353653f3ba45`
+  (matches local HEAD at verification time)
 
 ## 16. Phase / Task Status
 Task complete. Project phase status unchanged: Phase 2A.1, 2A.2, 2A.3 COMPLETE;

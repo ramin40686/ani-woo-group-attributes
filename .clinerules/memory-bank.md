@@ -46,11 +46,11 @@
 
 ## Current State
 
-- **Phase:** 0, 0.1, 1, 1.1, 1.1.1 complete · Phase 2A.1 (architecture corrections) **COMPLETE** (2026-11-25) · Phase 2A.2 (final architecture consistency) **COMPLETE** (2026-11-25) · Phase 2A.3 (native attribute template redesign) **COMPLETE** (2026-11-25, branch `phase-2a-3-native-attribute-template-redesign`, commit `d531d2e`) · **Phase 2B (runtime verification) NOT STARTED — awaiting explicit owner authorization**
+- **Phase:** 0, 0.1, 1, 1.1, 1.1.1 complete · Phase 2A.1 (architecture corrections) **COMPLETE** (2026-11-25) · Phase 2A.2 (final architecture consistency) **COMPLETE** (2026-11-25) · Phase 2A.3 (native attribute template redesign) **COMPLETE** (2026-11-25, branch `phase-2a-3-native-attribute-template-redesign`, commit `d531d2e`) · Phase 2B (runtime verification) **COMPLETE** (branch `phase-2b-runtime-verification`, commit `c63aacf`) · Phase 2B Evidence-Gap Follow-Up **COMPLETE** (branch `chore/phase-2b-evidence-gap-followup`, commit `d5279f2`) · Owner decisions Q1–Q4 finalized (D40–D43, 2026-11-27)
 - **Architecture (approved, not implemented):** **native-template model** — GPA groups are templates of Global Attribute definitions (CPT `ani_gpa_group` + ordered `pa_{slug}` references); Load inserts native attribute rows; the product's native `_product_attributes` is the single source of truth; all attributes render through the native Additional Information tab. Decisions D28–D43; the previous A1 + B1 direction (D22) is superseded. C (delimiter normalization) remains **deferred** (D20). See `docs/architecture/phase-2a-architecture-specification.md`.
 - **Documentation:** Phase 1 research docs + synthesis report; Phase 1.1 decisions D14–D23 + permanent test-environment policy; Phase 2A.3 native-template specification + decisions D28–D39; Owner decisions Q1–Q4 finalized (D40–D43, 2026-11-27).
-- **Repository:** `main` at `2b4b090` (last approved state); Phase 1, 1.1, 1.1.1, 2A, 2A.1, 2A.2, 2A.3 on their own branches, not merged (awaiting owner approval).
-- **Next:** explicit owner authorization → Phase 2B runtime verification (spec §17 checklist) on a dedicated branch (see `docs/PROJECT-ROADMAP.md` §3). Phase 2B remains **NOT STARTED — awaiting explicit owner authorization**.
+- **Repository:** `main` at `2b4b090` (last approved state); Phase 1, 1.1, 1.1.1, 2A, 2A.1, 2A.2, 2A.3, 2B, 2B follow-up on their own branches, not merged (awaiting owner approval).
+- **Next:** explicit owner authorization → Phase 3 (full implementation) on a dedicated branch (see `docs/PROJECT-ROADMAP.md` §3). Phase 3 remains **NOT STARTED — awaiting explicit owner authorization**.
 
 ## Test Fixtures (permanent — D23)
 

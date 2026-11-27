@@ -19,6 +19,13 @@
 > by D43 (GPA submenu under Products, immediately after Attributes). D24 (group status
 > policy) is **superseded** by D41 (only Published groups are loadable). The full record
 > is in `reports/2026-11-27-finalize-owner-decisions-q1-q4.md`.
+>
+> **Owner decisions D44–D45 finalized (2026-11-27).** The owner approved the two remaining
+> Phase 3.0 roadmap open items. New decision **D44** fixes the `table_style` settings UI
+> location (Appearance → Customize → Anishop → Group Attributes, select control) and
+> **D45** fixes the Load REST endpoint's product-ID transport (required `product_id` query
+> parameter). These resolve roadmap open items OI-5 and OI-6 respectively. The full record
+> is in `reports/2026-11-27-phase-3-owner-decisions-d44-d45.md`.
 
 ## Active decisions
 
@@ -59,6 +66,8 @@
 | D41 | **Only Published groups are eligible for loading (Q2):** only groups with `post_status === 'publish'` appear in the product editor's GPA group selector and may be loaded. Draft groups remain manageable in the GPA administration interface but must not appear as loadable options in the product editor. Publishing a group only makes it eligible for loading; it does not independently modify or publish any product data. The native WooCommerce attribute workflow is preserved. Supersedes D24 (reassessed). Resolves open item B2-34. | Owner decision, 2026-11-27 (Q2) |
 | D42 | **Frontend table styling: CSS-only, three styles retained (Q3):** the supported styles remain `default` (native WooCommerce/Blocksy appearance; no GPA-specific CSS enqueued), `minimal` (lightweight, visually simplified presentation), and `boxed` (clearly bordered/boxed presentation). Implementation constraints: do not replace or modify the native WooCommerce attribute renderer; do not introduce a separate GPA frontend table or custom HTML structure; do not introduce JavaScript for styling; apply styling uniformly to all attributes regardless of source; respect the active child-theme palette and RTL layout. The intended visual specifications for `minimal` and `boxed` must be defined and documented before final CSS implementation. Resolves open item B2-35. | Owner decision, 2026-11-27 (Q3) |
 | D43 | **GPA admin menu: submenu under WooCommerce Products (Q4):** GPA is registered as a **submenu** of the WooCommerce Products menu, placed **immediately after** the existing WooCommerce Attributes submenu. The exact Persian menu label is **گروه ویژگی‌های آنی**. No separate top-level WordPress admin menu is created for GPA. Placement must be robust (based on the actual parent menu and submenu ordering, not solely a hardcoded absolute position). The actual WooCommerce menu slug and submenu registration behavior must be inspected before implementation. Browser-visible ordering must be verified during the relevant implementation/runtime testing phase. Supersedes D35 (independent top-level menu). Resolves open item B2-36. | Owner decision, 2026-11-27 (Q4) |
+| D44 | **GPA table-style settings UI (OI-5):** the `table_style` setting is available at **Appearance → Customize → Anishop → Group Attributes** as a **select** control with values `default` / `minimal` / `boxed`. The selected value is stored in the existing Theme Mod `anishop_gpa_settings` under the key `table_style`. No separate WordPress admin settings page is created. The existing Theme Mod architecture and single sanitizer are preserved, and the approved CSS-only frontend architecture is preserved. `default` retains the native WooCommerce/Blocksy appearance and enqueues **no** GPA frontend CSS. Resolves roadmap open item OI-5. | Owner decision, 2026-11-27 (D44) |
+| D45 | **Product-ID transport for the Load REST endpoint (OI-6):** the REST route remains `anishop/v1/gpa/groups/{id}/attributes`, where `{id}` identifies the GPA group. The product ID is supplied as a **required query parameter** `product_id` (e.g. `GET /wp-json/anishop/v1/gpa/groups/123/attributes?product_id=456`). Implementation requirements: (1) require `product_id`; (2) validate it is a positive integer; (3) verify the referenced product exists; (4) verify it is a valid WooCommerce product; (5) perform `current_user_can( 'edit_product', $product_id )`; (6) validate the product **before** the capability check; (7) preserve the `X-WP-Nonce` requirement; (8) do not weaken or bypass any existing security requirement. Resolves roadmap open item OI-6. | Owner decision, 2026-11-27 (D45) |
 
 ## Superseded / Obsolete decisions (historical — preserved)
 
@@ -105,3 +114,9 @@ changed; the remainder is reassessed).
   to be defined before final CSS implementation.
 - **Admin menu placement (Q4 / B2-36)** — **RESOLVED** by D43: GPA is a submenu under
   WooCommerce Products, immediately after Attributes. Label: **گروه ویژگی‌های آنی**.
+- **`table_style` settings UI location (OI-5)** — **RESOLVED** by D44: the setting is
+  available at Appearance → Customize → Anishop → Group Attributes (select control), stored
+  in the existing Theme Mod `anishop_gpa_settings` → `table_style`.
+- **Load REST endpoint product-ID transport (OI-6)** — **RESOLVED** by D45: the product ID
+  is a required `product_id` query parameter, validated (exists + is a product) before the
+  `edit_product` capability check.

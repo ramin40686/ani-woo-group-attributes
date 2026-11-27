@@ -7,7 +7,7 @@
 > subphase) may begin **only after explicit owner authorization** of this roadmap.
 >
 > **Authoritative architecture:** the Phase 2A.3 **native-template model**
-> (`docs/architecture/phase-2a-architecture-specification.md`), decisions **D28–D43**
+> (`docs/architecture/phase-2a-architecture-specification.md`), decisions **D28–D45**
 > (`.clinerules/decisions.md`), and the **runtime-verified** Phase 2B evidence
 > (`reports/2026-11-26-phase-2b-runtime-verification.md`, 14/14 PASS;
 > `reports/2026-11-27-phase-2b-evidence-gap-followup.md`).
@@ -90,7 +90,7 @@ requirement in this document is invented; every planned item traces to one of th
 | # | Source | Role in this roadmap |
 |---|--------|----------------------|
 | S1 | `docs/architecture/phase-2a-architecture-specification.md` (Phase 2A.3, authoritative) | The design contract: data model, file structure, group editor, product integration, Load, native editing, frontend rendering, table styles, admin menu, security, performance, testing. |
-| S2 | `.clinerules/decisions.md` (D1–D43) | Owner decisions. Active: D1–D8, D11, D12, D13, D15, D19, D20, D21, D23, **D28–D34, D36–D43** (D35 is superseded by D43 and is **not** active). Superseded/obsolete: D9, D10, D14, D16, D17, D18, D22, D24, D25, D26, D27, D35. |
+| S2 | `.clinerules/decisions.md` (D1–D45) | Owner decisions. Active: D1–D8, D11, D12, D13, D15, D19, D20, D21, D23, **D28–D34, D36–D45** (D35 is superseded by D43 and is **not** active). Superseded/obsolete: D9, D10, D14, D16, D17, D18, D22, D24, D25, D26, D27, D35. |
 | S3 | `.clinerules/project-rules.md` | Execution rules, security rules, i18n rules, test-environment policy, Git workflow. |
 | S4 | `.clinerules/memory-bank.md` | Current state, data model, conventions, fixtures. |
 | S5 | `.clinerules/project-context.md` | Mandatory functionality, core principles, Definition of Done. |
@@ -104,9 +104,10 @@ requirement in this document is invented; every planned item traces to one of th
 | S13 | `docs/testing/test-fixtures.md` | Permanent test fixtures (13143 simple, 17028 variable) + registry. |
 | S14 | `docs/woocommerce-attributes-dev-notes.md` | Native WC attribute storage/API notes (Phase 1). |
 | S15 | `docs/references/group-attributes-reference.md` | Reference plugin behavior (context only — the clarified vision supersedes its value-selection model). |
+| S16 | `reports/2026-11-27-phase-3-owner-decisions-d44-d45.md` | D44–D45 final owner decisions (resolves roadmap open items OI-5 and OI-6). |
 
 > **Precedence:** where sources could conflict, the order of authority is
-> **S2 (decisions, latest D40–D43) → S1 (Phase 2A.3 specification) → S8/S9 (Phase 2B
+> **S2 (decisions, latest D40–D45) → S1 (Phase 2A.3 specification) → S8/S9 (Phase 2B
 > runtime evidence) → S3/S5/S6 (rules/context/conventions) → S12 (roadmap)**. The
 > superseded/obsolete decisions (S2) are **never** treated as active requirements (see §6).
 
@@ -334,6 +335,10 @@ registration, and hook wiring — so that later subphases have a stable foundati
   after** the Attributes submenu, label **گروه ویژگی‌های آنی** [DECISION D43].
 - Define the Theme Mod `anishop_gpa_settings` schema + **single sanitizer** (versioned)
   with `table_style` ∈ {`default`, `minimal`, `boxed`} [DECISION D39].
+- Register the **Customizer** control for `table_style` at **Appearance → Customize →
+  Anishop → Group Attributes** (a **select** with `default` / `minimal` / `boxed`), storing
+  the value in the existing Theme Mod `anishop_gpa_settings` → `table_style`; **no** separate
+  WordPress admin settings page [DECISION D44].
 - Define module constants (prefixes, meta keys, Theme Mod key, REST namespace).
 - Register admin + frontend assets (handles, `filemtime` versioning) — **registration
   only**; enqueue is wired in the subphases that use them.
@@ -346,13 +351,14 @@ registration, and hook wiring — so that later subphases have a stable foundati
 
 **Dependencies:** none (foundation).
 
-> **Settings UI location (unresolved — [OWNER-APPROVAL], see OI-5):** 3.1 defines the
-> Theme Mod schema + sanitizer (approved, D39). The **admin UI location and control
-> method** for an administrator to select/change `table_style` is **not** specified by the
-> approved architecture and must be confirmed by the owner before the settings UI is
-> implemented. The house pattern (Appearance → Anishop page) is the existing convention
-> but is **not** an approved decision for GPA's setting. No settings UI is invented in
-> this roadmap.
+> **Settings UI location (resolved — [DECISION D44]):** 3.1 defines the Theme Mod schema +
+> sanitizer (approved, D39) **and** registers the `table_style` **Customizer** control at
+> **Appearance → Customize → Anishop → Group Attributes** (a **select** with `default` /
+> `minimal` / `boxed`), storing the value in the existing Theme Mod `anishop_gpa_settings`
+> → `table_style` [DECISION D44]. No separate WordPress admin settings page is created; the
+> existing Theme Mod architecture and single sanitizer are preserved, and the approved
+> CSS-only frontend architecture is preserved. `default` retains the native
+> WooCommerce/Blocksy appearance and enqueues **no** GPA frontend CSS. (Resolves OI-5.)
 
 **Acceptance criteria**
 1. CPT `ani_gpa_group` is registered (verifiable via `get_post_type_object( 'ani_gpa_group' )`);
@@ -367,6 +373,10 @@ registration, and hook wiring — so that later subphases have a stable foundati
 4. No duplicate hooks, no changes to existing child-theme modules, no Blocksy core
    changes, no new plugins.
 5. All new PHP uses `ani_gpa_` / `Ani_GPA_` prefixes; text domain `anishop`.
+6. The `table_style` **Customizer** control is present at Appearance → Customize → Anishop
+   → Group Attributes (a select with `default` / `minimal` / `boxed`); changing it persists
+   to the Theme Mod `anishop_gpa_settings` → `table_style`; **no** separate admin settings
+   page is created [DECISION D44].
 
 **Verification steps**
 - Static: `php -l` on new files; confirm `functions.php` diff is exactly +1 line.
@@ -375,6 +385,9 @@ registration, and hook wiring — so that later subphases have a stable foundati
 - Runtime: confirm the CPT is registered (e.g. `wp post type` / `get_post_type_object`);
   confirm **no** standalone CPT menu in the rendered sidebar. (Group CRUD is verified in
   3.2, not here.)
+- Runtime (admin): open Appearance → Customize → Anishop → Group Attributes; confirm the
+  `table_style` select is present with `default` / `minimal` / `boxed`; change the value and
+  confirm it persists to the Theme Mod `anishop_gpa_settings` → `table_style` [DECISION D44].
 - Regression: confirm the 14 existing modules still load (no fatal, no hook collision).
 
 **Exclusions**
@@ -470,13 +483,15 @@ Attributes) so an admin can load a group's Global Attribute definitions into the
 - **Group select**: lists **`publish`** groups only [DECISION D41].
 - **Load REST endpoint** `anishop/v1/gpa/groups/{id}/attributes`:
   - The route carries the **group** ID in `{id}`. The **product** ID is **not** in the
-    route; it must be supplied by the product edit screen (the actual product being
-    edited). The exact transport (query parameter vs. request body) is **not settled** by
-    the approved architecture [UNRESOLVED — see OI-6, [OWNER-APPROVAL]].
-  - `permission_callback` checks `current_user_can( 'edit_product', $product_id )`, where
-    `$product_id` is the **actual product being edited** (validated to exist and be a
-    product before the capability check). The check is **not** weakened.
-  - Nonce via `X-WP-Nonce`.
+    route; it is supplied as a **required query parameter** `product_id` by the product edit
+    screen (the actual product being edited) [DECISION D45]. Example:
+    `GET /wp-json/anishop/v1/gpa/groups/123/attributes?product_id=456`.
+  - `product_id` is handled in this order [DECISION D45]: (1) required; (2) validated as a
+    positive integer; (3) the referenced product is verified to exist; (4) verified to be a
+    valid WooCommerce product; (5) `current_user_can( 'edit_product', $product_id )` is
+    checked; (6) the product is validated **before** the capability check. The check is
+    **not** weakened.
+  - Nonce via `X-WP-Nonce` (preserved).
   - Returns the group's ordered, **validated** `pa_{slug}` references (stale references
     excluded/flagged).
 - **Load row insertion**: the admin JS calls the **native**
@@ -516,8 +531,10 @@ B2-20 (save-button behavior), B2-21 (native coexistence), B2-22 (native order pr
    add (Global or Custom), and reorder; all of these coexist with loaded attributes
    [3-VERIFY R7].
 8. No GPA-specific product metadata is written; `_product_attributes` is the only store.
-9. The REST endpoint enforces nonce + `edit_product` capability; unauthorized requests are
-   rejected.
+9. The REST endpoint requires the `product_id` query parameter, validates it (positive
+   integer, exists, is a WooCommerce product) **before** the `edit_product` capability
+   check, and enforces the `X-WP-Nonce`; unauthorized or invalid requests are rejected
+   [DECISION D45].
 10. A loaded row with no value behaves per native save semantics [3-VERIFY R2/R3].
 
 **Verification steps**
@@ -532,7 +549,8 @@ B2-20 (save-button behavior), B2-21 (native coexistence), B2-22 (native order pr
 - Runtime: reorder / remove / manually add a Global and a Custom attribute; confirm
   coexistence [3-VERIFY R7].
 - Security: call the REST endpoint without a valid nonce / as a user without
-  `edit_product`; confirm rejection.
+  `edit_product` / with a missing or invalid `product_id` (non-integer, non-existent, or
+  non-product); confirm rejection in each case [DECISION D45].
 - Regression: confirm existing modules unaffected; confirm the native attribute UI is
   unmodified.
 
@@ -863,8 +881,8 @@ approval gates are:
 | OI-2 | **"View Attribute" shop-page button** | Deferred / out of scope (D36). May be re-proposed if a concrete requirement emerges. |
 | OI-3 | **`minimal` / `boxed` visual specifications** | Must be defined and documented **before** final CSS (D42). This is a Phase 3.4 pre-gate (G4), not a Phase 3.0 deliverable. |
 | OI-4 | **Group categories** | Not in scope for the initial version (D40). A future, separately-approved feature. |
-| OI-5 | **Admin UI location / control method for the `table_style` setting** | **Unresolved — [OWNER-APPROVAL].** The approved architecture specifies the Theme Mod storage (`anishop_gpa_settings` → `table_style`, S1 §10.4, D39) but does **not** specify where an administrator selects/changes the style. The location and control method must be confirmed by the owner before the settings UI is implemented (3.1). The house pattern (Appearance → Anishop page) is the existing convention but is **not** an approved decision for GPA's setting. The Theme Mod architecture and all three styles are preserved. |
-| OI-6 | **Product-ID source for the Load REST endpoint's `permission_callback`** | **Unresolved — [OWNER-APPROVAL].** The route `anishop/v1/gpa/groups/{id}/attributes` carries the group ID in `{id}`; the product ID is **not** in the route. The approved architecture requires `current_user_can( 'edit_product', $product_id )` (S1 §5.3/§13.1) but does not specify how `$product_id` is supplied. The product ID must be supplied by the product edit screen (the actual product being edited) and validated (exists + is a product) before the capability check. The exact transport (query parameter vs. request body) must be confirmed by the owner before 3.3 implementation. The permission check is **not** weakened. |
+| OI-5 | **Admin UI location / control method for the `table_style` setting** | **RESOLVED by D44 (2026-11-27).** The setting is available at **Appearance → Customize → Anishop → Group Attributes** as a **select** control (`default` / `minimal` / `boxed`), stored in the existing Theme Mod `anishop_gpa_settings` → `table_style`. No separate admin settings page; the Theme Mod architecture, single sanitizer, and CSS-only frontend are preserved; `default` enqueues no GPA frontend CSS. |
+| OI-6 | **Product-ID source for the Load REST endpoint's `permission_callback`** | **RESOLVED by D45 (2026-11-27).** The route `anishop/v1/gpa/groups/{id}/attributes` carries the group ID in `{id}`; the product ID is a **required `product_id` query parameter** (e.g. `?product_id=456`), validated (positive integer, exists, is a WooCommerce product) **before** the `current_user_can( 'edit_product', $product_id )` check. The `X-WP-Nonce` requirement is preserved; the permission check is **not** weakened. |
 
 ### 9.3 Explicitly NOT open (resolved)
 
@@ -872,6 +890,10 @@ approval gates are:
 - Q2 (group status policy) — RESOLVED by D41.
 - Q3 (table-style visual design) — RESOLVED by D42 (CSS-only confirmed; specs pending as OI-3).
 - Q4 (admin menu placement) — RESOLVED by D43.
+- OI-5 (`table_style` settings UI location) — RESOLVED by D44 (Appearance → Customize →
+  Anishop → Group Attributes, select control).
+- OI-6 (Load REST endpoint product-ID transport) — RESOLVED by D45 (required `product_id`
+  query parameter).
 
 
 ---

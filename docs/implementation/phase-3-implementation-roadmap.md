@@ -90,7 +90,7 @@ requirement in this document is invented; every planned item traces to one of th
 | # | Source | Role in this roadmap |
 |---|--------|----------------------|
 | S1 | `docs/architecture/phase-2a-architecture-specification.md` (Phase 2A.3, authoritative) | The design contract: data model, file structure, group editor, product integration, Load, native editing, frontend rendering, table styles, admin menu, security, performance, testing. |
-| S2 | `.clinerules/decisions.md` (D1–D43) | Owner decisions. Active: D1–D8, D11, D12, D13, D15, D19, D20, D21, D23, **D28–D43**. Superseded/obsolete: D9, D10, D14, D16, D17, D18, D22, D24, D25, D26, D27, D35. |
+| S2 | `.clinerules/decisions.md` (D1–D43) | Owner decisions. Active: D1–D8, D11, D12, D13, D15, D19, D20, D21, D23, **D28–D34, D36–D43** (D35 is superseded by D43 and is **not** active). Superseded/obsolete: D9, D10, D14, D16, D17, D18, D22, D24, D25, D26, D27, D35. |
 | S3 | `.clinerules/project-rules.md` | Execution rules, security rules, i18n rules, test-environment policy, Git workflow. |
 | S4 | `.clinerules/memory-bank.md` | Current state, data model, conventions, fixtures. |
 | S5 | `.clinerules/project-context.md` | Mandatory functionality, core principles, Definition of Done. |
@@ -298,9 +298,25 @@ wp-content/themes/blocksy-child/
 ## 5. Subphase breakdown
 
 Phase 3 is decomposed into five ordered subphases. Each is a **separate task** requiring
-explicit owner authorization. The order is a strict dependency chain: 3.1 → 3.2 → 3.3 →
-3.4 → 3.5 (3.4 may be developed in parallel with 3.3 once 3.1's Theme Mod exists, but is
-verified after 3.3 so it can style real loaded attributes).
+explicit owner authorization.
+
+**Approval and verification order (strict, invariant):** the subphases are approved and
+verified in the order 3.1 → 3.2 → 3.3 → 3.4 → 3.5. Each subphase begins only after
+explicit owner authorization and is verified before the next is approved.
+
+**Independent development vs. prerequisites vs. integration/verification:**
+- **Hard prerequisite (implementation):** a subphase's *implementation* may begin only
+  after its declared dependencies are complete. 3.4's only hard prerequisite is 3.1 (the
+  Theme Mod `anishop_gpa_settings` must exist for the style to be selectable).
+- **Independent development:** 3.4's CSS authoring (visual specifications + the
+  `minimal` / `boxed` stylesheets) can be developed **in parallel** with 3.3, because it
+  depends only on 3.1's Theme Mod, not on 3.3's output.
+- **Integration/verification (must wait):** 3.4's **end-to-end verification** (styling
+  *real* loaded attributes on a product) must wait until 3.3 is complete and verified,
+  because it needs 3.3's Load functionality to produce loaded attributes to style.
+
+In short: 3.4 may be *developed* alongside 3.3, but is *verified* after 3.3. No subphase
+is added, removed, or reordered, and no approval gate changes.
 
 > **B2 reference:** each subphase lists the Phase 2B checklist items (S1 §17) it
 > implements. The B2 items are the implementation checklist; the subphases group them into
@@ -330,9 +346,19 @@ registration, and hook wiring — so that later subphases have a stable foundati
 
 **Dependencies:** none (foundation).
 
+> **Settings UI location (unresolved — [OWNER-APPROVAL], see OI-5):** 3.1 defines the
+> Theme Mod schema + sanitizer (approved, D39). The **admin UI location and control
+> method** for an administrator to select/change `table_style` is **not** specified by the
+> approved architecture and must be confirmed by the owner before the settings UI is
+> implemented. The house pattern (Appearance → Anishop page) is the existing convention
+> but is **not** an approved decision for GPA's setting. No settings UI is invented in
+> this roadmap.
+
 **Acceptance criteria**
-1. CPT `ani_gpa_group` is registered; a group post can be created/edited/trashed via the
-   admin (no auto CPT menu appears).
+1. CPT `ani_gpa_group` is registered (verifiable via `get_post_type_object( 'ani_gpa_group' )`);
+   **no** standalone CPT menu appears in the admin sidebar (`show_in_menu => false`). Group
+   posts are created/edited **only** through the GPA submenu interface built in 3.2 — 3.1
+   provides **no** group CRUD UI.
 2. The GPA submenu appears in the rendered admin sidebar **immediately after** the
    WooCommerce Attributes submenu, with the exact Persian label **گروه ویژگی‌های آنی**
    [3-VERIFY R4].
@@ -346,7 +372,9 @@ registration, and hook wiring — so that later subphases have a stable foundati
 - Static: `php -l` on new files; confirm `functions.php` diff is exactly +1 line.
 - Runtime (admin): load the Products menu; screenshot the sidebar; confirm GPA submenu
   position relative to Attributes [3-VERIFY R4].
-- Runtime: create a group post via the CPT; confirm it persists; confirm no auto menu.
+- Runtime: confirm the CPT is registered (e.g. `wp post type` / `get_post_type_object`);
+  confirm **no** standalone CPT menu in the rendered sidebar. (Group CRUD is verified in
+  3.2, not here.)
 - Regression: confirm the 14 existing modules still load (no fatal, no hook collision).
 
 **Exclusions**
@@ -441,7 +469,13 @@ Attributes) so an admin can load a group's Global Attribute definitions into the
   controls (not a persisted flag) [DECISION D37].
 - **Group select**: lists **`publish`** groups only [DECISION D41].
 - **Load REST endpoint** `anishop/v1/gpa/groups/{id}/attributes`:
-  - `permission_callback` checks `current_user_can( 'edit_product', $product_id )`.
+  - The route carries the **group** ID in `{id}`. The **product** ID is **not** in the
+    route; it must be supplied by the product edit screen (the actual product being
+    edited). The exact transport (query parameter vs. request body) is **not settled** by
+    the approved architecture [UNRESOLVED — see OI-6, [OWNER-APPROVAL]].
+  - `permission_callback` checks `current_user_can( 'edit_product', $product_id )`, where
+    `$product_id` is the **actual product being edited** (validated to exist and be a
+    product before the capability check). The check is **not** weakened.
   - Nonce via `X-WP-Nonce`.
   - Returns the group's ordered, **validated** `pa_{slug}` references (stale references
     excluded/flagged).
@@ -545,8 +579,9 @@ attributes regardless of source.
 uniform application), B2-25 (no duplicate tables / group headings), B2-26 (exact CSS
 selectors against live markup).
 
-**Dependencies:** 3.1 (Theme Mod `anishop_gpa_settings`); 3.3 (real loaded attributes to
-style, for end-to-end verification).
+**Dependencies:** 3.1 (Theme Mod `anishop_gpa_settings` — **hard prerequisite** for
+implementation); 3.3 (real loaded attributes to style — required only for end-to-end
+**verification**, not for CSS development; see §5 intro).
 
 **Acceptance criteria**
 1. `default` enqueues **no** GPA CSS and the table looks exactly native.
@@ -612,7 +647,8 @@ live environment with no regression.
 final touches to any module file as required by the review (no new features).
 
 **B2 items:** B2-27 (persian-woocommerce), B2-28 (WC 11.3.1), B2-29 (Blocksy Free),
-B2-30 (regression: 14 modules), B2-31 (security), B2-32 (RTL + Persian + real-mobile).
+B2-30 (regression: 14 modules), B2-31 (security), B2-32 (RTL + Persian +
+responsive/browser-level checks; the **real-device** portion of B2-32 is Phase 4).
 
 **Dependencies:** 3.1, 3.2, 3.3, 3.4 (all prior subphases complete).
 
@@ -635,7 +671,8 @@ B2-30 (regression: 14 modules), B2-31 (security), B2-32 (RTL + Persian + real-mo
 - i18n: confirm the `.po`/`.mo` contain all GPA strings; load the admin in Persian and
   confirm no missing translations.
 - Runtime (end-to-end, both fixtures): full flow; screenshot admin + frontend (desktop +
-  mobile, RTL).
+  mobile **viewport**, RTL) — browser-level only. Real-device (Live Link) verification is
+  Phase 4, not 3.5.
 - Regression: exercise each of the 14 existing modules' primary screens; confirm no
   breakage.
 - Performance: confirm conditional asset loading (network inspection); confirm no N+1
@@ -826,6 +863,8 @@ approval gates are:
 | OI-2 | **"View Attribute" shop-page button** | Deferred / out of scope (D36). May be re-proposed if a concrete requirement emerges. |
 | OI-3 | **`minimal` / `boxed` visual specifications** | Must be defined and documented **before** final CSS (D42). This is a Phase 3.4 pre-gate (G4), not a Phase 3.0 deliverable. |
 | OI-4 | **Group categories** | Not in scope for the initial version (D40). A future, separately-approved feature. |
+| OI-5 | **Admin UI location / control method for the `table_style` setting** | **Unresolved — [OWNER-APPROVAL].** The approved architecture specifies the Theme Mod storage (`anishop_gpa_settings` → `table_style`, S1 §10.4, D39) but does **not** specify where an administrator selects/changes the style. The location and control method must be confirmed by the owner before the settings UI is implemented (3.1). The house pattern (Appearance → Anishop page) is the existing convention but is **not** an approved decision for GPA's setting. The Theme Mod architecture and all three styles are preserved. |
+| OI-6 | **Product-ID source for the Load REST endpoint's `permission_callback`** | **Unresolved — [OWNER-APPROVAL].** The route `anishop/v1/gpa/groups/{id}/attributes` carries the group ID in `{id}`; the product ID is **not** in the route. The approved architecture requires `current_user_can( 'edit_product', $product_id )` (S1 §5.3/§13.1) but does not specify how `$product_id` is supplied. The product ID must be supplied by the product edit screen (the actual product being edited) and validated (exists + is a product) before the capability check. The exact transport (query parameter vs. request body) must be confirmed by the owner before 3.3 implementation. The permission check is **not** weakened. |
 
 ### 9.3 Explicitly NOT open (resolved)
 

@@ -21,12 +21,12 @@ The module integrates with WooCommerce product administration (Product Data → 
 
 ### Required functionality
 
-1. **Group attribute management (admin)** — independent top-level admin menu immediately after Products:
+1. **Group attribute management (admin)** — submenu under WooCommerce Products, immediately after Attributes (label: **گروه ویژگی‌های آنی**):
    - Create, edit, delete attribute groups.
    - Name the attribute group and select the existing **Global Attribute definitions** to include in the group.
    - Drag-and-drop the group's attributes to set their order (defines the initial insertion order when the group is loaded).
    - List and manage all created group attributes.
-2. **Group attribute categories (admin):** [UNRESOLVED owner decision Q1] — not part of the core architecture; in scope only if the owner confirms.
+2. **Group attribute categories (admin):** [RESOLVED — D40, 2026-11-27] — Not in scope for the initial version. No `ani_gpa_group_cat` taxonomy. Groups remain a flat collection.
 3. **Product-level group loading (product edit screen)** — Product Data → Attributes:
    - UI-only "Create group for this product" toggle (reveals the group select + Load controls; no persisted flag).
    - Group select + Load: loading a group inserts its Global Attribute definitions into the product's native attribute collection (native `woocommerce_add_attribute` row insertion).
@@ -208,7 +208,7 @@ Deliverables:
 * Technical architecture overview (components + data flow).
 * Component responsibilities (CPT, group editor, Product Data → Attributes integration, native frontend rendering, settings).
 * File structure inside `inc/ani-group-product-attributes/`.
-* Data model: CPT `ani_gpa_group` + group meta `_ani_gpa_group_attributes` (ordered `pa_{slug}` references) + Theme Mod `anishop_gpa_settings`; no GPA product meta; no category taxonomy in the core (Q1 unresolved).
+* Data model: CPT `ani_gpa_group` + group meta `_ani_gpa_group_attributes` (ordered `pa_{slug}` references) + Theme Mod `anishop_gpa_settings`; no GPA product meta; no category taxonomy in the core (D40 — resolved, not in scope).
 * PHP plan (classes, hooks, save handlers).
 * JavaScript plan (dependency-free vanilla JS, drag-and-drop, AJAX group loading).
 * CSS plan (`.ani-gpa-` prefix, RTL, house style).
@@ -249,7 +249,7 @@ Test the feature in the actual Anishop environment.
 
 Required tests:
 
-* Admin: group CRUD, Global Attribute selection, in-group attribute ordering (desktop). (Group categories only if owner decision Q1 is resolved.)
+* Admin: group CRUD, Global Attribute selection, in-group attribute ordering (desktop). (Group categories are not in scope — D40.)
 * Product Data → Attributes: load one group, load multiple groups, duplicate handling, native value selection, native reordering.
 * Frontend rendering: single product page Additional Information tab (desktop + mobile).
 * RTL and Persian text (all UI surfaces).

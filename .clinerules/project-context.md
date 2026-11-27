@@ -12,8 +12,8 @@ Let Anishop store admins define reusable **groups** of existing Global WooCommer
 
 ## Mandatory Functionality (PROJECT-ROADMAP.md §1 — updated for the Phase 2A.3 native-template model)
 
-1. **Group attribute management (admin)** — independent top-level menu after Products: create/edit/delete groups; name a group; select existing **Global Attribute definitions** to include; drag-and-drop attribute ordering within a group; list all groups.
-2. **Group category management (admin):** [UNRESOLVED owner decision Q1] — not part of the core architecture.
+1. **Group attribute management (admin)** — submenu under WooCommerce Products, immediately after Attributes (label: **گروه ویژگی‌های آنی**): create/edit/delete groups; name a group; select existing **Global Attribute definitions** to include; drag-and-drop attribute ordering within a group; list all groups.
+2. **Group category management (admin):** [RESOLVED — D40, 2026-11-27] — Not in scope for the initial version. No `ani_gpa_group_cat` taxonomy. Groups remain a flat collection.
 3. **Product-level group loading (product edit screen)** — Product Data → Attributes: UI-only "create group for this product" toggle; group select + Load (inserts the group's Global Attribute definitions into the product's native attribute collection); multiple groups may be loaded (duplicates skipped); values, edits, removals, additions, and reordering are then done through **native** WooCommerce controls.
 4. **General settings:** table style (`default` / `minimal` / `boxed`) applied uniformly to all product attributes; no location setting; no "View Attribute" button (deferred / out of scope, D36).
 5. **Cross-cutting:** error handling; responsive desktop + mobile; Persian RTL; minimal resource consumption.

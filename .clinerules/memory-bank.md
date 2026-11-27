@@ -25,7 +25,7 @@
 - Group meta: `_ani_gpa_group_attributes` (serialized array of ordered `pa_{slug}` references)
 - Settings: Theme Mod `anishop_gpa_settings` (`table_style`: default / minimal / boxed)
 - **No** GPA-specific product metadata — the product's native `_product_attributes` is the single source of truth (D30)
-- **No** `ani_gpa_group_cat` taxonomy in the core — group categories are an unresolved owner decision (Q1/B2-33)
+- **No** `ani_gpa_group_cat` taxonomy in the core — group categories are not in scope (D40, resolved 2026-11-27)
 - Prefixes: PHP `ani_gpa_` / `Ani_GPA_` · CSS `.ani-gpa-` · text domain `anishop`
 
 ## Live Environment (LIVE-VERIFIED 2026-11-23)
@@ -38,7 +38,7 @@
 
 - Module pattern: `inc/{module}/{config,admin,render,bootstrap}.php`
 - Settings: Theme Mod + single sanitizer + versioned schema
-- Admin UI: Appearance → Anishop page, tabs via `anishop_admin_tabs` filter (GPA exception: independent top-level menu immediately after Products — D35)
+- Admin UI: Appearance → Anishop page, tabs via `anishop_admin_tabs` filter (GPA exception: submenu under WooCommerce Products, after Attributes — D43)
 - Frontend JS: dependency-free vanilla IIFE + `wp_localize_script`
 - Asset versioning: `filemtime`
 - House style: Vazirmatn, accent `#2872FA`, radii 2/4px, flat, RTL-first
@@ -47,10 +47,10 @@
 ## Current State
 
 - **Phase:** 0, 0.1, 1, 1.1, 1.1.1 complete · Phase 2A.1 (architecture corrections) **COMPLETE** (2026-11-25) · Phase 2A.2 (final architecture consistency) **COMPLETE** (2026-11-25) · Phase 2A.3 (native attribute template redesign) **COMPLETE** (2026-11-25, branch `phase-2a-3-native-attribute-template-redesign`, commit `d531d2e`) · **Phase 2B (runtime verification) NOT STARTED — awaiting explicit owner authorization**
-- **Architecture (approved, not implemented):** **native-template model** — GPA groups are templates of Global Attribute definitions (CPT `ani_gpa_group` + ordered `pa_{slug}` references); Load inserts native attribute rows; the product's native `_product_attributes` is the single source of truth; all attributes render through the native Additional Information tab. Decisions D28–D39; the previous A1 + B1 direction (D22) is superseded. C (delimiter normalization) remains **deferred** (D20). See `docs/architecture/phase-2a-architecture-specification.md`.
-- **Documentation:** Phase 1 research docs + synthesis report; Phase 1.1 decisions D14–D23 + permanent test-environment policy; Phase 2A.3 native-template specification + decisions D28–D39.
+- **Architecture (approved, not implemented):** **native-template model** — GPA groups are templates of Global Attribute definitions (CPT `ani_gpa_group` + ordered `pa_{slug}` references); Load inserts native attribute rows; the product's native `_product_attributes` is the single source of truth; all attributes render through the native Additional Information tab. Decisions D28–D43; the previous A1 + B1 direction (D22) is superseded. C (delimiter normalization) remains **deferred** (D20). See `docs/architecture/phase-2a-architecture-specification.md`.
+- **Documentation:** Phase 1 research docs + synthesis report; Phase 1.1 decisions D14–D23 + permanent test-environment policy; Phase 2A.3 native-template specification + decisions D28–D39; Owner decisions Q1–Q4 finalized (D40–D43, 2026-11-27).
 - **Repository:** `main` at `2b4b090` (last approved state); Phase 1, 1.1, 1.1.1, 2A, 2A.1, 2A.2, 2A.3 on their own branches, not merged (awaiting owner approval).
-- **Next:** owner review of the aligned documentation → explicit owner authorization → Phase 2B runtime verification (spec §17 checklist) on a dedicated branch (see `docs/PROJECT-ROADMAP.md` §3). Phase 2B remains **NOT STARTED — awaiting explicit owner authorization**.
+- **Next:** explicit owner authorization → Phase 2B runtime verification (spec §17 checklist) on a dedicated branch (see `docs/PROJECT-ROADMAP.md` §3). Phase 2B remains **NOT STARTED — awaiting explicit owner authorization**.
 
 ## Test Fixtures (permanent — D23)
 
@@ -60,4 +60,4 @@
 
 ## Decisions
 
-See `decisions.md` (D1–D39). Phase 1.1 added D14–D23. Phase 2A.3 added D28–D39 (native-template model: groups = templates of Global Attribute definitions; Load adds native attribute rows; no product meta / no provenance; native rendering only; uniform table styles; independent top-level admin menu; View Attribute deferred; UI-only toggle; Product Data → Attributes integration; Theme Mod `anishop_gpa_settings`). Superseded: D9, D10, D14, D16, D17, D18, D22, D27. Obsolete: D25, D26. Modified: D24 (reassessed, open item B2-34).
+See `decisions.md` (D1–D43). Phase 1.1 added D14–D23. Phase 2A.3 added D28–D39 (native-template model: groups = templates of Global Attribute definitions; Load adds native attribute rows; no product meta / no provenance; native rendering only; uniform table styles; View Attribute deferred; UI-only toggle; Product Data → Attributes integration; Theme Mod `anishop_gpa_settings`). Owner decisions Q1–Q4 (2026-11-27) added D40–D43 (no group categories; only Published groups loadable; CSS-only table styling confirmed; GPA submenu under Products after Attributes). Superseded: D9, D10, D14, D16, D17, D18, D22, D24, D27, D35. Obsolete: D25, D26.

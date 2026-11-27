@@ -275,7 +275,7 @@ CPT registration). [REQ — decided data model]
 | `public` | `false` | Groups are admin-only; never exposed in the frontend query loop or REST. [REQ] |
 | `publicly_queryable` | `false` | No public permalinks. [REQ] |
 | `show_ui` | `true` | Admin list/edit screens. [REQ] |
-| `show_in_menu` | `false` | The top-level menu is added explicitly via `add_menu_page` so its position can be controlled to sit immediately after Products (§12). [DECISION D35] |
+| `show_in_menu` | `false` | The GPA menu is added as a submenu under WooCommerce Products via `add_submenu_page` (§12). [DECISION D43] |
 | `show_in_rest` | `false` | No Gutenberg/REST exposure of the CPT itself. [REQ] |
 | `exclude_from_search` | `true` | Not searchable. [REQ] |
 | `has_archive` | `false` | No archive. [REQ] |
@@ -287,25 +287,24 @@ CPT registration). [REQ — decided data model]
 - **Group description** = optional; stored in the post content (or a dedicated meta if a
   richer editor is needed). Not required by the product vision. [RECOMMEND]
 - **Group status:** standard WordPress `publish` / `draft`. Only `publish` groups are
-  listed in the product-edit group picker and may be loaded (§4.4, §13). [RECOMMEND —
-  reassessed from D24/U11; see the Phase 2A.3 report]
+  listed in the product-edit group picker and may be loaded (§4.4, §13). Draft groups
+  remain manageable in the GPA admin but are not loadable. [DECISION D41]
 - **Global group ordering is NOT a required feature.** The group list uses the default
   (title / date) ordering. [DECISION D31]
 
-### 2.4 Group categories (open question)
+### 2.4 Group categories (resolved — not in scope)
 
 The original roadmap (ROADMAP §1.2) included "Group attribute categories" and a
-"Load Group Categories" action. The clarified Phase 2A.3 product vision (§3 of the task)
-does **not** mention group categories, and the core workflow (select a group → Load) does
-not depend on them.
+"Load Group Categories" action. The owner has confirmed (Q1, 2026-11-27) that group
+categories are **not in scope** for the initial GPA version. [DECISION D40]
 
-- **Status:** [UNRESOLVED] — group categories are **not part of the core Phase 2A.3
-  architecture**. They are recorded as an open item for owner confirmation.
-- The core data model, Load operation, and frontend are **independent** of categories, so
-  adding them later (if the owner confirms) is a contained, orthogonal extension
-  (taxonomy `ani_gpa_group_cat` + a "load all groups of a category" action).
-- **No** category taxonomy is registered in the core architecture until the owner
-  confirms the feature is in scope. [UNRESOLVED]
+- **Status:** [DECISION D40] — No `ani_gpa_group_cat` taxonomy. No category management,
+  category assignment, or category filtering. GPA groups remain a simple, flat collection.
+- The existing group list and its basic information are sufficient.
+- This decision does **not** prevent adding categorization in a future, separately
+  approved feature. The core data model, Load operation, and frontend are independent of
+  categories, so adding them later would be a contained, orthogonal extension.
+- **No** category taxonomy is registered in the core architecture. [DECISION D40]
 
 ---
 
@@ -520,7 +519,7 @@ The GPA interface belongs **inside** WooCommerce **Product Data → Attributes**
 ### 5.3 Group selection and Load
 
 - **Group select:** a `<select>` listing **`publish`** groups (title = group name). Only
-  published groups are offered (§2.3). [RECOMMEND]
+  published groups are offered (§2.3). Draft groups are not listed. [DECISION D41]
 - **Load button:** on click, GPA performs the Load operation (§5.4).
 - **Data source:** a nonce-protected REST endpoint (`anishop/v1/gpa/groups/{id}/attributes`)
   returns the selected group's **ordered** `pa_{slug}` list (validated per §3.3). The
@@ -808,12 +807,12 @@ GPA provides three presentation styles for the product attribute table: [DECISIO
 - The presentation must remain **lightweight** and must **not** introduce duplicate
   attribute tables or unnecessary frontend JavaScript. [DECISION D34]
 
-### 10.3 Implementation mechanism (recommended — CSS-only)
+### 10.3 Implementation mechanism (CSS-only — confirmed)
 
-The **safest compatible approach** is a **CSS-only** mechanism that styles the existing
-native `shop_attributes` table, with **no** PHP rendering changes, **no** template
-overrides, **no** filters on the attribute data, and **no** frontend JavaScript.
-[RECOMMEND]
+The owner has confirmed (Q3, 2026-11-27) that the presentation mechanism is **CSS-only**:
+a stylesheet that styles the existing native `shop_attributes` table, with **no** PHP
+rendering changes, **no** template overrides, **no** filters on the attribute data, and
+**no** frontend JavaScript. [DECISION D42]
 
 - **Mechanism:**
   1. A single stylesheet `ani-group-product-attributes-styles.css` contains the rules for
@@ -840,9 +839,10 @@ overrides, **no** filters on the attribute data, and **no** frontend JavaScript.
   - The exact selectors and the body-class scoping must be confirmed against the live
     Blocksy 2.1.62 + WC 11.3.1 markup in Phase 2B (the table is inside the Blocksy
     Additional Information tab wrapper). [2B-VERIFY]
-- **The implementation mechanism is not yet authorized.** This section documents the
-  recommended approach and its evidence; the final mechanism is a Phase 2B/Phase 3
-  decision. [RECOMMEND]
+- **The CSS-only mechanism is confirmed** by the owner (D42). The exact selectors and
+  body-class scoping must be confirmed against the live Blocksy 2.1.62 + WC 11.3.1 markup
+  in Phase 2B. The visual specifications for `minimal` and `boxed` must be defined and
+  documented before final CSS implementation. [DECISION D42]
 
 ### 10.4 Settings
 
@@ -865,7 +865,7 @@ overrides, **no** filters on the attribute data, and **no** frontend JavaScript.
 | Row insertion (Load) | Native `woocommerce_add_attribute` AJAX action (`WC_AJAX::add_attribute`) | Reused by GPA Load; requires `edit_products` + `add-attribute` nonce. [WC 11.3.1 SOURCE — class-wc-ajax.php:779] |
 | Global Attribute registry | `wc_get_attribute_taxonomies()`, `wc_attribute_taxonomy_name()`, `wc_attribute_taxonomy_id_by_name()`, `wc_get_attribute()` | Group editor picker + reference validation. [WC 11.3.1 SOURCE — wc-attribute-functions.php] |
 | Group CPT admin | `save_post_ani_gpa_group` | Group save handler. [WP core API] |
-| Admin menu | `add_menu_page` on `admin_menu` | Top-level menu after Products (§12). [WP core API] |
+| Admin menu | `add_submenu_page` on `admin_menu` | Submenu under WooCommerce Products, after Attributes (§12). [WP core API] [DECISION D43] |
 
 - **Preserved technical corrections from earlier phases (still applicable):**
   - `woocommerce_product_options_attributes` is associated with the **Attributes** tab
@@ -905,60 +905,93 @@ overrides, **no** filters on the attribute data, and **no** frontend JavaScript.
 
 ## 12. Admin menu placement
 
-GPA has an **independent top-level** WordPress admin menu that appears **immediately after
-the Products menu**. [DECISION D35]
+GPA is registered as a **submenu** of the WooCommerce **Products** menu, placed
+**immediately after** the existing WooCommerce **Attributes** submenu. [DECISION D43]
 
-### 12.1 WordPress admin menu ordering mechanism (verified)
+The exact Persian menu label is: **گروه ویژگی‌های آنی**
 
-- Top-level admin menus are stored in the `$menu` global, **keyed by position** and rendered
-  in position order. `add_menu_page( …, $position )` accepts a **float** position. [WP CORE
-  SOURCE]
-- **CPT menus** are added in `wp-admin/menu.php` with the position logic:
-  `$post_type_menu_position = is_int( $post_type_obj->menu_position ) ? $post_type_obj->menu_position : ++$_wp_last_object_menu;`
-  where `$_wp_last_object_menu = 25` (initialized at `wp-admin/menu.php:121`). [WP CORE
-  SOURCE — wp-admin/menu.php:121,140-142]
-  - **Important:** because the check is `is_int()`, a **float** `menu_position` on a CPT
-    falls back to the auto-increment counter. CPT menus therefore occupy **integer**
-    positions (26, 27, …) assigned in post-type processing order.
-- **The Products CPT** (`product`) registers **no** `menu_position`
-  (`class-wc-post-types.php:367-421`), so its menu position is **auto-assigned**
-  (`++$_wp_last_object_menu`), i.e. an integer ≥ 26 depending on how many CPTs are processed
-  before it. **The Products menu position is therefore NOT a fixed, reliable constant.**
-  [WC 11.3.1 SOURCE] [WP CORE SOURCE]
-- The **WooCommerce** menu is at position `55.5` (`class-wc-admin-menus.php:97`). [WC
-  11.3.1 SOURCE]
+### 12.1 Desired menu hierarchy
 
-### 12.2 Suitable approach (recommended)
+```
+Products (WooCommerce)
+  ├── All Products
+  ├── Add Product
+  ├── Categories
+  ├── Tags
+  ├── Attributes
+  └── Anishop Attribute Groups (گروه ویژگی‌های آنی)  ← GPA submenu
+```
 
-Because the Products position is auto-assigned (not fixed), the robust way to place GPA
-"immediately after Products" is to **compute the position relative to Products at runtime**:
+- **No separate top-level WordPress admin menu** is created for GPA. [DECISION D43]
+- The GPA CPT is registered with `show_in_menu => false` (no auto CPT menu). [DECISION D43]
+- The GPA submenu is added via `add_submenu_page()` under the WooCommerce Products menu.
+  [DECISION D43]
 
-1. Register the GPA CPT with `show_in_menu => false` (no auto CPT menu). [DECISION D35]
-2. On `admin_menu` (which runs after the CPT menus are populated into `$menu`), **locate the
-   Products menu entry** in the `$menu` global (the entry whose URL is
-   `edit.php?post_type=product`) and read its position key.
-3. Add the GPA top-level menu via `add_menu_page( …, $products_position + 0.5 )` — a **float**
-   position that sorts immediately after the Products integer position and before the next
-   integer position.
-4. Add the standard submenus (All Groups, Add New) under the GPA menu.
+### 12.2 WooCommerce Products menu structure (verified)
 
-- **Why a float offset:** the menu is sorted by position; `N + 0.5` (where `N` is Products'
-  integer position) places GPA directly after Products regardless of how many CPTs are
-  registered. [WP CORE SOURCE]
-- **Collision consideration:** another plugin could theoretically use the same `N + 0.5`
-  position. Using a small fractional offset (e.g. `+ 0.1`) and verifying the live menu order
-  in Phase 2B mitigates this. The exact offset and any collision are a [2B-VERIFY] item.
-- **Alternative (rejected):** hardcoding a CPT `menu_position` integer is **not** reliable
-  because the Products position is auto-assigned and can shift if CPT registration order
-  changes. [RECOMMEND — rejected]
+- The WooCommerce **Products** menu is a top-level menu registered by WooCommerce at
+  position `58` (the `edit.php?post_type=product` entry). [WC 11.3.1 SOURCE —
+  `class-wc-post-types.php`]
+- WooCommerce registers the following submenus under Products:
+  - `edit.php?post_type=product` (All Products)
+  - `post-new.php?post_type=product` (Add Product)
+  - `edit-tags.php?taxonomy=product_cat&post_type=product` (Categories)
+  - `edit-tags.php?taxonomy=product_tag&post_type=product` (Tags)
+  - `edit.php?post_type=product&page=product_attributes` (Attributes)
+  [WC 11.3.1 SOURCE]
+- The **Attributes** submenu slug is `edit.php?post_type=product&page=product_attributes`.
+  [WC 11.3.1 SOURCE]
 
-### 12.3 Verification of the intended placement
+### 12.3 Suitable approach (recommended)
 
-- **Phase 2B verification:** after implementation, confirm the live admin sidebar order —
-  GPA must appear immediately after Products. This can be verified by:
+The robust way to place GPA "immediately after Attributes" is to **use the WooCommerce
+Products menu slug as the parent** and register the GPA submenu with `add_submenu_page()`:
+
+1. Register the GPA CPT with `show_in_menu => false` (no auto CPT menu). [DECISION D43]
+2. On `admin_menu` (or a later hook that fires after WooCommerce has registered its
+   submenus), call:
+   ```php
+   add_submenu_page(
+       'edit.php?post_type=product',  // WooCommerce Products parent slug
+       __( 'Anishop Attribute Groups', 'anishop' ),  // page title
+       __( 'گروه ویژگی‌های آنی', 'anishop' ),  // menu title (Persian)
+       'edit_posts',  // capability
+       'ani_gpa_group',  // menu slug
+       'ani_gpa_render_group_list'  // callback
+   );
+   ```
+3. **Placement after Attributes:** WordPress submenus are rendered in registration order
+   (not by position). To ensure GPA appears **immediately after** the Attributes submenu,
+   the GPA submenu must be registered **after** WooCommerce's Attributes submenu. This is
+   achieved by hooking into `admin_menu` with a priority **greater than** WooCommerce's
+   submenu registration priority (WooCommerce uses priority `10` for its admin menu
+   registration). Using priority `20` (or later) ensures GPA is registered after all
+   WooCommerce submenus. [WP CORE SOURCE]
+4. **Alternative (if ordering is not guaranteed):** if the registration-order approach does
+   not reliably place GPA after Attributes (e.g. due to plugin interference), a
+   `admin_menu` filter can reorder the `$submenu['edit.php?post_type=product']` array to
+   move the GPA entry to the position immediately after the Attributes entry. This is a
+   fallback and should only be used if the primary approach fails. [RECOMMEND]
+
+- **Why `add_submenu_page` is preferred over `add_menu_page`:** the owner explicitly
+  prefers a submenu under Products over an independent top-level menu (D43 supersedes D35).
+  Submenu registration is simpler, more robust, and does not require computing a float
+  position relative to an auto-assigned CPT menu position. [DECISION D43]
+- **Collision consideration:** another plugin could theoretically register a submenu with
+  the same slug `ani_gpa_group`. The slug is prefixed and specific, making collision
+  unlikely. The browser-visible ordering must be verified in Phase 2B/Phase 4. [2B-VERIFY]
+- **WooCommerce menu slug verification:** the exact parent slug
+  (`edit.php?post_type=product`) and the Attributes submenu slug must be confirmed against
+  the live WC 11.3.1 installation in Phase 2B. [2B-VERIFY]
+
+### 12.4 Verification of the intended placement
+
+- **Phase 2B / Phase 4 verification:** after implementation, confirm the live admin
+  sidebar order — GPA must appear as a submenu under Products, immediately after
+  Attributes. This can be verified by:
   - Inspecting the rendered admin menu (visual / CDP), and/or
-  - Reading the `$menu` global order (e.g. via a read-only `wp eval` that lists top-level
-    menu positions and labels) to confirm GPA's position key is `Products_position + offset`.
+  - Reading the `$submenu['edit.php?post_type=product']` array to confirm GPA's position
+    relative to the Attributes entry.
   [2B-VERIFY]
 - **Do not change the live WordPress admin menu** as part of this documentation task. [REQ]
 
@@ -1111,7 +1144,7 @@ Because the Products position is auto-assigned (not fixed), the robust way to pl
     Additional Information tab in native order; `default` style = native appearance;
     `minimal` / `boxed` styles apply uniformly to all rows; no duplicate tables; no group
     headings.
-  - **Admin menu:** GPA top-level menu appears immediately after Products.
+  - **Admin menu:** GPA submenu appears under Products, immediately after Attributes.
   - **RTL + Persian** (all UI surfaces); desktop + **real mobile** (iPhone 12 Pro via Live
     Link — CDP success is not sufficient).
   - **`persian-woocommerce`** coexistence (D19).
@@ -1140,8 +1173,8 @@ has been executed or verified as of this document (Phase 2A.3, 2026-11-25).
 | # | Item | Type |
 |---|------|------|
 | B2-1 | Register CPT `ani_gpa_group` per §2.3 (`show_in_menu => false`, `supports => ['title']`, `capability_type => post` + `map_meta_cap`, `rewrite => false`). | [CONFIRMED] |
-| B2-2 | Add the GPA top-level admin menu immediately after Products via `add_menu_page` with a runtime-computed float position (§12.2); confirm the live sidebar order. | [2B-VERIFY] |
-| B2-3 | Confirm the Products menu position at runtime (read the `$menu` global) and that the chosen offset places GPA directly after it with no collision. | [2B-VERIFY] |
+| B2-2 | Add the GPA submenu under WooCommerce Products via `add_submenu_page` (§12.3); confirm the live sidebar order (GPA appears after Attributes). | [2B-VERIFY] |
+| B2-3 | Confirm the WooCommerce Products parent slug and Attributes submenu slug at runtime; verify GPA submenu placement is immediately after Attributes with no collision. | [2B-VERIFY] |
 
 ### 17.2 Group editor
 
@@ -1197,14 +1230,14 @@ has been executed or verified as of this document (Phase 2A.3, 2026-11-25).
 | B2-31 | Security: nonce/capability enforcement (group save, Load REST, settings save); output escaping; safe unserialization of `_ani_gpa_group_attributes`. | [CONFIRMED] |
 | B2-32 | RTL + Persian presentation (admin + frontend); real-mobile verification (iPhone 12 Pro). | [CONFIRMED] |
 
-### 17.7 Open implementation decisions
+### 17.7 Resolved implementation decisions (2026-11-27)
 
 | # | Item | Type |
 |---|------|------|
-| B2-33 | Group categories: confirm with the owner whether the feature is in scope (ROADMAP §1.2 vs the clarified vision). If in scope, define the taxonomy + "load all groups of a category" action. | [OPEN] |
-| B2-34 | Group status policy: confirm the "only `publish` groups are loadable" policy (reassessed from D24/U11). | [OPEN] |
-| B2-35 | Table-style visual design: finalize the `minimal` / `boxed` CSS within the house palette. | [OPEN] |
-| B2-36 | Admin menu fractional offset (e.g. `+0.1` vs `+0.5`) after collision check. | [OPEN] |
+| B2-33 | Group categories: **RESOLVED** by D40 — not in scope for the initial version. No taxonomy. | [RESOLVED] |
+| B2-34 | Group status policy: **RESOLVED** by D41 — only `publish` groups are loadable. | [RESOLVED] |
+| B2-35 | Table-style visual design: **RESOLVED** by D42 — CSS-only confirmed; visual specs for `minimal` / `boxed` to be defined before final CSS. | [RESOLVED] |
+| B2-36 | Admin menu placement: **RESOLVED** by D43 — submenu under Products, after Attributes. Label: **گروه ویژگی‌های آنی**. | [RESOLVED] |
 
 ---
 
@@ -1214,10 +1247,10 @@ has been executed or verified as of this document (Phase 2A.3, 2026-11-25).
 
 | # | Question | Status |
 |---|----------|--------|
-| Q1 | **Group categories** — are they in scope? (ROADMAP §1.2 lists them; the clarified Phase 2A.3 vision does not mention them.) The core architecture is independent of them. | [UNRESOLVED] (B2-33) |
-| Q2 | **Group status policy** — confirm "only `publish` groups are loadable" (reassessed from D24/U11; the old publish/draft-assignable + publish-only-render policy no longer applies because there is no assignment or GPA rendering). | [UNRESOLVED] (B2-34) |
-| Q3 | **Table-style visual design** — finalize the `minimal` / `boxed` CSS within the house palette. | [OPEN] (B2-35) |
-| Q4 | **Admin menu fractional offset** — confirm the offset after the Phase 2B collision check. | [OPEN] (B2-36) |
+| Q1 | **Group categories** — are they in scope? | [RESOLVED] (D40, 2026-11-27) — Not in scope. No taxonomy. |
+| Q2 | **Group status policy** — confirm "only `publish` groups are loadable". | [RESOLVED] (D41, 2026-11-27) — Confirmed. |
+| Q3 | **Table-style visual design** — finalize the `minimal` / `boxed` CSS within the house palette. | [RESOLVED] (D42, 2026-11-27) — CSS-only confirmed; visual specs to be defined. |
+| Q4 | **Admin menu placement** — confirm the menu structure and label. | [RESOLVED] (D43, 2026-11-27) — Submenu under Products, after Attributes. Label: **گروه ویژگی‌های آنی**. |
 
 ### 18.2 Phase 2B verification requirements (consolidated)
 
@@ -1232,8 +1265,9 @@ currently **pending**):
    architecture does **not** depend on this.
 3. **Native save discard** — confirm loaded rows persist only after values are selected
    (B2-19).
-4. **Admin menu position** — the live Products position and that the chosen offset places
-   GPA immediately after it with no collision (B2-2, B2-3, B2-36).
+4. **Admin menu placement** — the WooCommerce Products parent slug, the Attributes submenu
+   slug, and that the GPA submenu appears immediately after Attributes with no collision
+   (B2-2, B2-3).
 5. **CSS-only table style** — the exact selectors and body-class scoping against live
    Blocksy 2.1.62 + WC 11.3.1 markup (B2-24, B2-26).
 6. **`persian-woocommerce` compatibility** — runtime coexistence of the CSS-only style +

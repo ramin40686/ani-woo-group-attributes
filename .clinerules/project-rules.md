@@ -25,7 +25,7 @@
 - از استانداردهای WordPress PHP Coding Standards پیروی کن.
 - تمام فایل‌های PHP باید در ابتدا `if ( ! defined( 'ABSPATH' ) ) { exit; }` داشته باشند.
 - نام‌گذاری کلاس‌ها به صورت `Ani_GPA_Class_Name` و توابع به صورت `ani_gpa_function_name`.
-- برای ذخیره داده‌ها از Custom Post Type `ani_gpa_group` استفاده کن. (تاکسونومی `ani_gpa_group_cat` جزو معماری هسته نیست — دسته‌بندی گروه‌ها یک تصمیم باز مالک است (Q1).)
+- برای ذخیره داده‌ها از Custom Post Type `ani_gpa_group` استفاده کن. (تاکسونومی `ani_gpa_group_cat` جزو معماری هسته نیست — دسته‌بندی گروه‌ها در نسخه اولیه خارج از محدوده است (D40).)
 - متادیتای گروه: `_ani_gpa_group_attributes` (آرایه مرتب‌شده از ارجاعات `pa_{slug}` ویژگی‌های سراسری). هیچ متادیتای اختصاصی GPA روی محصول ذخیره نمی‌شود؛ داده بومی `_product_attributes` محصول منبع یکتای حقیقت است (D30).
 
 ## قوانین امنیتی
@@ -214,9 +214,8 @@ Within the designated fixtures **and** products explicitly created as GPA test f
 
 - Add, edit, and remove attributes (global and custom).
 - Create new global attributes and taxonomy terms when necessary.
-- Create, edit, and delete GPA groups. (Group categories are not part of the core
-  architecture — unresolved owner decision Q1; creating them requires separate owner
-  confirmation.)
+- Create, edit, and delete GPA groups. (Group categories are not in scope for the initial
+  version — D40; creating them requires a separate, separately approved feature.)
 - Load GPA groups into test products (native attribute row insertion); select, edit, and
   remove attribute values through the native WooCommerce controls; reorder attributes
   through the native controls.

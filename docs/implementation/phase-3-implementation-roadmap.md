@@ -335,10 +335,12 @@ registration, and hook wiring — so that later subphases have a stable foundati
   after** the Attributes submenu, label **گروه ویژگی‌های آنی** [DECISION D43].
 - Define the Theme Mod `anishop_gpa_settings` schema + **single sanitizer** (versioned)
   with `table_style` ∈ {`default`, `minimal`, `boxed`} [DECISION D39].
-- Register the **Customizer** control for `table_style` at **Appearance → Customize →
-  Anishop → Group Attributes** (a **select** with `default` / `minimal` / `boxed`), storing
-  the value in the existing Theme Mod `anishop_gpa_settings` → `table_style`; **no** separate
-  WordPress admin settings page [DECISION D44].
+- Render the GPA admin page with two visually separated, independently-saved sections:
+  **گروه‌های ویژگی** (group management — Phase 3.1 placeholder) and **تنظیمات نمایش**
+  (display settings — the `table_style` **select** with `default` / `minimal` / `boxed`),
+  storing the value in the existing Theme Mod `anishop_gpa_settings` → `table_style` via a
+  dedicated `admin_post_ani_gpa_save_settings` handler (nonce + `edit_theme_options`)
+  [DECISION D46].
 - Define module constants (prefixes, meta keys, Theme Mod key, REST namespace).
 - Register admin + frontend assets (handles, `filemtime` versioning) — **registration
   only**; enqueue is wired in the subphases that use them.
@@ -351,14 +353,17 @@ registration, and hook wiring — so that later subphases have a stable foundati
 
 **Dependencies:** none (foundation).
 
-> **Settings UI location (resolved — [DECISION D44]):** 3.1 defines the Theme Mod schema +
-> sanitizer (approved, D39) **and** registers the `table_style` **Customizer** control at
-> **Appearance → Customize → Anishop → Group Attributes** (a **select** with `default` /
-> `minimal` / `boxed`), storing the value in the existing Theme Mod `anishop_gpa_settings`
-> → `table_style` [DECISION D44]. No separate WordPress admin settings page is created; the
-> existing Theme Mod architecture and single sanitizer are preserved, and the approved
-> CSS-only frontend architecture is preserved. `default` retains the native
-> WooCommerce/Blocksy appearance and enqueues **no** GPA frontend CSS. (Resolves OI-5.)
+> **Settings UI location (resolved — [DECISION D46], supersedes D44):** 3.1 defines the
+> Theme Mod schema + sanitizer (approved, D39) **and** renders the `table_style` **select**
+> on the GPA admin page (Dashboard → Products → **گروه ویژگی‌های آنی**) in the
+> **تنظیمات نمایش** (display settings) section, storing the value in the existing Theme Mod
+> `anishop_gpa_settings` → `table_style` via a dedicated `admin_post_ani_gpa_save_settings`
+> handler (nonce + `edit_theme_options`) [DECISION D46]. The **گروه‌های ویژگی** (group
+> management) section is a Phase 3.1 placeholder. The Anishop Customizer section is preserved
+> as a navigation guide (not a settings container). The existing Theme Mod architecture and
+> single sanitizer are preserved, and the approved CSS-only frontend architecture is
+> preserved. `default` retains the native WooCommerce/Blocksy appearance and enqueues **no**
+> GPA frontend CSS. (Resolves OI-5.)
 
 **Acceptance criteria**
 1. CPT `ani_gpa_group` is registered (verifiable via `get_post_type_object( 'ani_gpa_group' )`);
@@ -373,10 +378,12 @@ registration, and hook wiring — so that later subphases have a stable foundati
 4. No duplicate hooks, no changes to existing child-theme modules, no Blocksy core
    changes, no new plugins.
 5. All new PHP uses `ani_gpa_` / `Ani_GPA_` prefixes; text domain `anishop`.
-6. The `table_style` **Customizer** control is present at Appearance → Customize → Anishop
-   → Group Attributes (a select with `default` / `minimal` / `boxed`); changing it persists
-   to the Theme Mod `anishop_gpa_settings` → `table_style`; **no** separate admin settings
-   page is created [DECISION D44].
+6. The GPA admin page shows two visually separated sections — **گروه‌های ویژگی** (group
+   management placeholder) and **تنظیمات نمایش** (display settings) — each with its own
+   form and save action. The `table_style` **select** (a select with `default` / `minimal` /
+   `boxed`) is in the display-settings section; saving it persists to the Theme Mod
+   `anishop_gpa_settings` → `table_style` via the `admin_post_ani_gpa_save_settings` handler
+   (nonce + `edit_theme_options`) [DECISION D46].
 
 **Verification steps**
 - Static: `php -l` on new files; confirm `functions.php` diff is exactly +1 line.
@@ -385,9 +392,12 @@ registration, and hook wiring — so that later subphases have a stable foundati
 - Runtime: confirm the CPT is registered (e.g. `wp post type` / `get_post_type_object`);
   confirm **no** standalone CPT menu in the rendered sidebar. (Group CRUD is verified in
   3.2, not here.)
-- Runtime (admin): open Appearance → Customize → Anishop → Group Attributes; confirm the
-  `table_style` select is present with `default` / `minimal` / `boxed`; change the value and
-  confirm it persists to the Theme Mod `anishop_gpa_settings` → `table_style` [DECISION D44].
+- Runtime (admin): open the GPA admin page (Products → گروه ویژگی‌های آنی); confirm the two
+  sections (گروه‌های ویژگی + تنظیمات نمایش) are present and visually separated; confirm the
+  `table_style` select is in the display-settings section with `default` / `minimal` /
+  `boxed`; save a value and confirm it persists to the Theme Mod `anishop_gpa_settings` →
+  `table_style` [DECISION D46]. Confirm the Anishop Customizer section renders the navigation
+  guide (no GPA Table Style control).
 - Regression: confirm the 14 existing modules still load (no fatal, no hook collision).
 
 **Exclusions**
@@ -881,7 +891,7 @@ approval gates are:
 | OI-2 | **"View Attribute" shop-page button** | Deferred / out of scope (D36). May be re-proposed if a concrete requirement emerges. |
 | OI-3 | **`minimal` / `boxed` visual specifications** | Must be defined and documented **before** final CSS (D42). This is a Phase 3.4 pre-gate (G4), not a Phase 3.0 deliverable. |
 | OI-4 | **Group categories** | Not in scope for the initial version (D40). A future, separately-approved feature. |
-| OI-5 | **Admin UI location / control method for the `table_style` setting** | **RESOLVED by D44 (2026-11-27).** The setting is available at **Appearance → Customize → Anishop → Group Attributes** as a **select** control (`default` / `minimal` / `boxed`), stored in the existing Theme Mod `anishop_gpa_settings` → `table_style`. No separate admin settings page; the Theme Mod architecture, single sanitizer, and CSS-only frontend are preserved; `default` enqueues no GPA frontend CSS. |
+| OI-5 | **Admin UI location / control method for the `table_style` setting** | **RESOLVED by D44 (2026-11-27), re-resolved by D46 (2026-11-28).** The setting is on the GPA admin page (Dashboard → Products → **گروه ویژگی‌های آنی**) in the **تنظیمات نمایش** section as a **select** control (`default` / `minimal` / `boxed`), stored in the existing Theme Mod `anishop_gpa_settings` → `table_style` via a dedicated `admin_post_ani_gpa_save_settings` handler (nonce + `edit_theme_options`). The Anishop Customizer section is preserved as a navigation guide; the Theme Mod architecture, single sanitizer, and CSS-only frontend are preserved; `default` enqueues no GPA frontend CSS. |
 | OI-6 | **Product-ID source for the Load REST endpoint's `permission_callback`** | **RESOLVED by D45 (2026-11-27).** The route `anishop/v1/gpa/groups/{id}/attributes` carries the group ID in `{id}`; the product ID is a **required `product_id` query parameter** (e.g. `?product_id=456`), validated (positive integer, exists, is a WooCommerce product) **before** the `current_user_can( 'edit_product', $product_id )` check. The `X-WP-Nonce` requirement is preserved; the permission check is **not** weakened. |
 
 ### 9.3 Explicitly NOT open (resolved)
@@ -890,8 +900,10 @@ approval gates are:
 - Q2 (group status policy) — RESOLVED by D41.
 - Q3 (table-style visual design) — RESOLVED by D42 (CSS-only confirmed; specs pending as OI-3).
 - Q4 (admin menu placement) — RESOLVED by D43.
-- OI-5 (`table_style` settings UI location) — RESOLVED by D44 (Appearance → Customize →
-  Anishop → Group Attributes, select control).
+- OI-5 (`table_style` settings UI location) — RESOLVED by D44 (2026-11-27), re-resolved by
+  D46 (2026-11-28): the setting is on the GPA admin page (Dashboard → Products →
+  **گروه ویژگی‌های آنی**) in the **تنظیمات نمایش** section as a select control; the Anishop
+  Customizer section is preserved as a navigation guide.
 - OI-6 (Load REST endpoint product-ID transport) — RESOLVED by D45 (required `product_id`
   query parameter).
 

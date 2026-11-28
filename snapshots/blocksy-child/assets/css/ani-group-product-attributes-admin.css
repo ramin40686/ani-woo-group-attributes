@@ -1,0 +1,34 @@
+/* Anishop Group Product Attributes — admin (Phase 3.1).
+ *
+ * Minimal, functional styling for the GPA admin page's two independently-saved
+ * sections (D46). No decorative styling; house palette + radii only.
+ */
+
+.ani-gpa-section {
+	max-width: 960px;
+	margin: 0 0 24px;
+	padding: 16px;
+	border: 1px solid #e1e8ed;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.ani-gpa-section .form-table th {
+	width: 220px;
+}
+
+/* Customizer navigation guide (Appearance → Customize → Anishop, D46). */
+.ani-gpa-customizer-nav ul {
+	margin: 8px 0 0;
+	padding-inline-start: 20px;
+}
+
+.ani-gpa-customizer-nav li {
+	margin-bottom: 6px;
+}
+
+.ani-gpa-customizer-nav__path {
+	display: block;
+	color: #646970;
+	font-size: 12px;
+}

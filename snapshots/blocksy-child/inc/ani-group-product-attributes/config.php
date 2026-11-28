@@ -11,9 +11,10 @@
  *
  * Phase 3.1 scope (important):
  *  - This file is READ-ONLY in Phase 3.1. It never renders anything and is only
- *    invoked by the Customizer save path (which stores the Theme Mod).
- *  - The `anishop_gpa_settings` Theme Mod is written only through the Customizer
- *    (D44) and read only through `ani_gpa_get_settings()`.
+ *    invoked by the display-settings save path (which stores the Theme Mod).
+ *  - The `anishop_gpa_settings` Theme Mod is written only through the
+ *    `admin_post_ani_gpa_save_settings` handler (D46) and read only through
+ *    `ani_gpa_get_settings()`.
  *
  * The configuration layer is the single validation authority: all submitted
  * data is passed through `ani_gpa_sanitize_settings()`.
@@ -105,15 +106,15 @@ function ani_gpa_get_defaults() {
  *  - `version` is always pinned to ANI_GPA_SETTINGS_VERSION (never
  *    user-controlled);
  *  - unknown fields are discarded;
- *  - a raw string input (e.g. a single Customizer control value) is treated as
- *    the `table_style` value;
+ *  - a raw string input (the selected `table_style` value) is treated as the
+ *    `table_style` value;
  *  - non-array / non-scalar input returns the full defaults.
  *
  * @param mixed $input Raw settings (an array, or a single `table_style` string).
  * @return array{version: int, table_style: string}
  */
 function ani_gpa_sanitize_settings( $input ) {
-	// A single Customizer control submits its scalar value (the selected
+	// The display-settings form submits its scalar value (the selected
 	// `table_style`), not the full array. Normalize it into the array shape.
 	if ( is_string( $input ) ) {
 		$input = array( 'table_style' => $input );

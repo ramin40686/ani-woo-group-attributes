@@ -88,7 +88,7 @@ function ani_gpa_register_admin_menu() {
 		'edit.php?post_type=product',
 		__( 'Anishop Attribute Groups', 'anishop' ),
 		'گروه ویژگی‌های آنی',
-		'edit_theme_options',
+		'edit_posts',
 		'ani_gpa_group',
 		'ani_gpa_render_group_list'
 	);
@@ -167,7 +167,7 @@ add_action( 'admin_menu', 'ani_gpa_reorder_products_submenu', 99 );
  * @return void
  */
 function ani_gpa_render_group_list() {
-	if ( ! current_user_can( 'edit_theme_options' ) ) {
+	if ( ! current_user_can( 'edit_posts' ) ) {
 		return;
 	}
 	?>
@@ -180,56 +180,103 @@ function ani_gpa_render_group_list() {
 }
 
 /**
- * A select control for the `table_style` key within the `anishop_gpa_settings`
- * Theme Mod array.
- *
- * The Customizer setting is bound to the entire Theme Mod (an array), but the
- * control edits a single key (`table_style`). This control overrides
- * `value()` to extract the `table_style` key from the array, so the select
- * displays the correct current value.
- *
- * @package Anishop
- */
-if ( ! class_exists( 'Ani_GPA_Table_Style_Control' ) && class_exists( 'WP_Customize_Control' ) ) {
-	class Ani_GPA_Table_Style_Control extends WP_Customize_Control {
-
-		/**
-		 * The control type.
-		 *
-		 * @var string
-		 */
-		public $type = 'select';
-
-		/**
-		 * The key within the `anishop_gpa_settings` Theme Mod array.
-		 *
-		 * @var string
-		 */
-		protected $setting_key = 'table_style';
-
-		/**
-		 * Get the current value of the `table_style` key.
-		 *
-		 * @return string The current `table_style` value, or `default` if absent.
-		 */
-		public function value() {
-			$value = parent::value();
-			if ( is_array( $value ) ) {
-				return isset( $value[ $this->setting_key ] ) ? $value[ $this->setting_key ] : 'default';
-			}
-			return $value;
-		}
-	}
-}
-
-/**
  * Register the GPA Customizer settings (Appearance → Customize → Anishop →
  * Group Attributes, D44).
+ *
+ * Both the `Ani_GPA_Table_Style_Setting` and `Ani_GPA_Table_Style_Control`
+ * classes are declared inside this callback (not at file-include time) because
+ * the child-theme bootstrap runs before WordPress loads the Customizer classes.
+ * `WP_Customize_Setting` and `WP_Customize_Control` are guaranteed to be
+ * available here — the `WP_Customize_Manager` constructor (which runs before
+ * `customize_register` fires) loads them — so the classes can safely extend
+ * them. The `class_exists` guards prevent redeclaration if the callback runs
+ * more than once (e.g. Customizer AJAX requests).
+ *
+ * The `table_style` value lives inside the `anishop_gpa_settings` Theme Mod
+ * array. The Customizer setting exposes that single key as a scalar: the
+ * custom setting's `value()` extracts the key from the array (so the select
+ * control displays the correct current value) and its `update()` writes the
+ * full sanitized array back to the Theme Mod. This keeps the single approved
+ * write path (the Customizer) and the single Theme Mod key intact.
  *
  * @param WP_Customize_Manager $wp_customize Customizer manager.
  * @return void
  */
 function ani_gpa_customize_register( $wp_customize ) {
+	// Declare the setting class now that WP_Customize_Setting is available.
+	if ( ! class_exists( 'Ani_GPA_Table_Style_Setting' ) && class_exists( 'WP_Customize_Setting' ) ) {
+		/**
+		 * A Customizer setting for the `table_style` key within the
+		 * `anishop_gpa_settings` Theme Mod array.
+		 *
+		 * The Theme Mod stores the full settings array, but this setting
+		 * exposes a single scalar key (`table_style`) to the Customizer
+		 * control. `value()` extracts the key from the array; `update()`
+		 * saves the full sanitized array back to the Theme Mod.
+		 *
+		 * @package Anishop
+		 */
+		class Ani_GPA_Table_Style_Setting extends WP_Customize_Setting {
+
+			/**
+			 * The key within the `anishop_gpa_settings` Theme Mod array.
+			 *
+			 * @var string
+			 */
+			protected $setting_key = 'table_style';
+
+			/**
+			 * Get the current value of the `table_style` key.
+			 *
+			 * @return string The current `table_style` value, or `default` if absent.
+			 */
+			public function value() {
+				$stored = get_theme_mod( ANI_GPA_THEME_MOD );
+				if ( is_array( $stored ) && isset( $stored[ $this->setting_key ] ) ) {
+					return $stored[ $this->setting_key ];
+				}
+				return 'default';
+			}
+
+			/**
+			 * Save the full sanitized settings array to the Theme Mod.
+			 *
+			 * The `$value` is the output of `ani_gpa_sanitize_settings()`
+			 * (the full array), applied by the Customizer save path before
+			 * `update()` is called.
+			 *
+			 * @param array $value The sanitized settings array.
+			 * @return void
+			 */
+			protected function update( $value ) {
+				set_theme_mod( ANI_GPA_THEME_MOD, $value );
+			}
+		}
+	}
+
+	// Declare the control class now that WP_Customize_Control is available.
+	if ( ! class_exists( 'Ani_GPA_Table_Style_Control' ) && class_exists( 'WP_Customize_Control' ) ) {
+		/**
+		 * A select control for the `table_style` key within the
+		 * `anishop_gpa_settings` Theme Mod array.
+		 *
+		 * The current value is supplied by the `Ani_GPA_Table_Style_Setting`
+		 * (which extracts the `table_style` key from the Theme Mod array), so
+		 * this control is a plain select control.
+		 *
+		 * @package Anishop
+		 */
+		class Ani_GPA_Table_Style_Control extends WP_Customize_Control {
+
+			/**
+			 * The control type.
+			 *
+			 * @var string
+			 */
+			public $type = 'select';
+		}
+	}
+
 	// The "Anishop" panel (top-level in the Customizer sidebar).
 	if ( ! $wp_customize->get_panel( 'anishop' ) ) {
 		$wp_customize->add_panel(
@@ -252,14 +299,18 @@ function ani_gpa_customize_register( $wp_customize ) {
 		)
 	);
 
-	// The settings (the single Theme Mod).
+	// The setting (the `table_style` key of the single Theme Mod, as a scalar).
 	$wp_customize->add_setting(
-		ANI_GPA_THEME_MOD,
-		array(
-			'theme_mod'         => ANI_GPA_THEME_MOD,
-			'default'           => ani_gpa_get_defaults(),
-			'sanitize_callback' => 'ani_gpa_sanitize_settings',
-			'transport'         => 'refresh',
+		new Ani_GPA_Table_Style_Setting(
+			$wp_customize,
+			'anishop_gpa_table_style',
+			array(
+				'type'              => 'theme_mod',
+				'theme_mod'         => ANI_GPA_THEME_MOD,
+				'default'           => 'default',
+				'sanitize_callback' => 'ani_gpa_sanitize_settings',
+				'transport'         => 'refresh',
+			)
 		)
 	);
 
@@ -271,7 +322,7 @@ function ani_gpa_customize_register( $wp_customize ) {
 			array(
 				'label'    => __( 'Table style', 'anishop' ),
 				'section'  => 'anishop_gpa',
-				'settings' => ANI_GPA_THEME_MOD,
+				'settings' => 'anishop_gpa_table_style',
 				'choices'  => array(
 					'default' => __( 'Default', 'anishop' ),
 					'minimal' => __( 'Minimal', 'anishop' ),

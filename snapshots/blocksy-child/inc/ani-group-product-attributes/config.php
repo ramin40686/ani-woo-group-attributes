@@ -152,20 +152,3 @@ function ani_gpa_get_settings() {
 	}
 	return ani_gpa_sanitize_settings( $stored );
 }
-
-/**
- * Save the GPA settings (write path).
- *
- * The raw input is sanitized before being stored, so the Theme Mod always
- * holds valid settings. This is the only code path that writes the Theme Mod
- * outside the Customizer, and it must only be called from an explicit,
- * nonce-protected admin action.
- *
- * @param mixed $input Raw settings (an array, or a single `table_style` string).
- * @return array{version: int, table_style: string} The sanitized settings that were stored.
- */
-function ani_gpa_save_settings( $input ) {
-	$clean = ani_gpa_sanitize_settings( $input );
-	set_theme_mod( ANI_GPA_THEME_MOD, $clean );
-	return $clean;
-}

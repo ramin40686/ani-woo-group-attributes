@@ -43,4 +43,5 @@ require_once __DIR__ . '/inc/anishop-buy-box/admin.php';
 require_once __DIR__ . '/inc/anishop-buy-box/render.php';
 require_once __DIR__ . '/inc/anishop-buy-box/product-rows.php';
 require_once __DIR__ . '/inc/anishop-search-box/bootstrap.php';
+require_once __DIR__ . '/inc/ani-group-product-attributes/bootstrap.php';
 
